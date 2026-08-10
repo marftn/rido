@@ -1,13 +1,13 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
+	"rido/internal/log"
 )
 
 func RestoreCmd(files []string) {
 	if len(files) < 1 {
-		fmt.Println("Error: at least one file must be specified.")
+		log.Error("At least one file must be specified.")
 
 		os.Exit(1)
 	}

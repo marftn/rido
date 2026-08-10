@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"rido/cmd/cmd"
+	"rido/internal/log"
 )
 
 func main() {
@@ -30,5 +30,5 @@ func main() {
 }
 
 func usage() {
-	fmt.Println("Usage: tbd")
+	log.Info("Usage: tbd")
 }

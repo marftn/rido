@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
+	"rido/internal/log"
 )
 
 func nilOrExit(errs ...error) {
 	for _, err := range errs {
 		if err != nil {
-			fmt.Printf("Error: %v.\n", err)
+			log.Errorf("Some errors occurred: %v.\n", err)
 
 			os.Exit(1)
 		}
