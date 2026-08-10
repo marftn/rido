@@ -14,16 +14,14 @@ func main() {
 	}
 
 	switch os.Args[1] {
-	case cmd.NameCreateCmd:
-		cmd.CreateCmd(os.Args[2:])
 	case cmd.NameAddCmd:
 		cmd.AddCmd(os.Args[2:])
 	case cmd.NameListCmd:
 		cmd.ListCmd(os.Args[2:])
 	case cmd.NameRestoreCmd:
 		cmd.RestoreCmd(os.Args[2:])
-	case cmd.NameRmCmd:
-		cmd.RmCmd(os.Args[2:])
+	case cmd.NameRevertCmd:
+		cmd.RevertCmd(os.Args[2:])
 	default:
 		usage()
 
