@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
-	"rido/internal/config"
-	"rido/internal/fs"
 )
 
 const (
@@ -18,8 +15,8 @@ type Meta struct {
 	Origin   string `json:"origin"`
 }
 
-func WriteMetaFile(file *os.File, meta Meta) (n int, err error) {
-	data, err := json.Marshal(meta)
+func WriteMetaFile(file *os.File, meta *Meta) (n int, err error) {
+	data, err := json.Marshal(*meta)
 	if err != nil {
 		err = fmt.Errorf("could not marshal meta to JSON: %w", err)
 
@@ -34,22 +31,4 @@ func WriteMetaFile(file *os.File, meta Meta) (n int, err error) {
 	}
 
 	return
-}
-
-func CreateMetaFile(storeItem StoreItem) (*os.File, error) {
-	config := config.NewDummyConfig()
-
-	storeItemFolder := filepath.Join(config.StoreLocation, storeItem.ID.String())
-	err := os.MkdirAll(storeItemFolder, fs.DefaultPermissions)
-	if err != nil {
-		return nil, fmt.Errorf("could not create store item folder: %w", err)
-	}
-
-	metaFilename := filepath.Join(storeItemFolder, MetaFilename)
-	metaFile, err := os.Create(metaFilename)
-	if err != nil {
-		return nil, fmt.Errorf("could not create meta file: %w", err)
-	}
-
-	return metaFile, nil
 }

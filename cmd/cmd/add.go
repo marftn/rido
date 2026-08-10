@@ -52,12 +52,7 @@ func addFile(filename string) error {
 		return fmt.Errorf("could not create store: %w", err)
 	}
 
-	metaFile, err := store.CreateMetaFile(storeItem)
-	if err != nil {
-		return err
-	}
-
-	_, err = store.WriteMetaFile(metaFile, meta)
+	err = store.WriteStoreItem(&storeItem)
 	if err != nil {
 		return err
 	}
