@@ -67,8 +67,10 @@ func moveAndLink(meta Meta, dstFolder string) error {
 	// - [x] Park
 	// - [x] Link
 	// - [x] Remove
+
 	dstFile := filepath.Join(dstFolder, meta.Filename)
 
+	//TODO: we need to handle folders as well.
 	err := fs.CopyFile(dstFile, meta.Origin)
 	if err != nil {
 		return fmt.Errorf("failed to copy file: %w", err)
