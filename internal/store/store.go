@@ -5,12 +5,16 @@ import (
 )
 
 type Store struct {
+	Items []StoreItem
+}
+
+type StoreItem struct {
 	ID   ulid.ULID
 	Meta *Meta
 }
 
-func NewStore(meta *Meta) Store {
-	return Store{
+func NewStoreItem(meta *Meta) StoreItem {
+	return StoreItem{
 		ID:   ulid.Make(),
 		Meta: meta,
 	}

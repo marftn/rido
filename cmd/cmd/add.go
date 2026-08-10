@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"rido/internal/assert"
+	"rido/internal/store"
 )
 
 func AddCmd(files []string) {
@@ -18,4 +20,47 @@ func AddCmd(files []string) {
 		assert.AssertNoDuplicate(files),
 		assert.AssertNoNestedPath(files),
 	)
+
+	for _, f := range files {
+		err := addFile(f)
+		if err != nil {
+			fmt.Println("Error:", err)
+
+			os.Exit(1)
+		}
+	}
+}
+
+func addFile(filename string) error {
+	origin, err := filepath.Abs(filename)
+	if err != nil {
+		return fmt.Errorf("could not find origin: %w", err)
+	}
+
+	meta := store.Meta{
+		Filename: filepath.Base(filename),
+		Origin:   origin,
+	}
+
+	storeItem := store.NewStoreItem(&meta)
+
+	fmt.Println(meta)
+
+	storeName := "/tmp/rido-store/" + storeItem.ID.String()
+	err = os.MkdirAll(storeName, 0700)
+	if err != nil {
+		return fmt.Errorf("could not create store: %w", err)
+	}
+
+	metaFile, err := store.CreateMetaFile(storeItem)
+	if err != nil {
+		return err
+	}
+
+	_, err = store.WriteMetaFile(metaFile, meta)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
