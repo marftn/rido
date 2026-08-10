@@ -6,8 +6,12 @@ import (
 	"rido/internal/log"
 )
 
+const (
+	MinArgsNb = 2
+)
+
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) < MinArgsNb {
 		usage()
 
 		os.Exit(1)

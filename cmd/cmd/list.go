@@ -1,5 +1,5 @@
 package cmd
 
-func ListCmd(args []string) {
+func ListCmd(_ []string) {
 
 }

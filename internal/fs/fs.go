@@ -23,8 +23,8 @@ func CopyFile(dst, src string) error {
 	}
 	defer out.Close()
 
-	if _, err := io.Copy(out, in); err != nil {
-		return fmt.Errorf("could not copy %q -> %q: %w", src, dst, err)
+	if _, e := io.Copy(out, in); e != nil {
+		return fmt.Errorf("could not copy %q -> %q: %w", src, dst, e)
 	}
 
 	return nil

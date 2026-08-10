@@ -1,5 +1,5 @@
 package cmd
 
-func RevertCmd(args []string) {
+func RevertCmd(_ []string) {
 
 }
