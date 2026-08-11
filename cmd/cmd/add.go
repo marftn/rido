@@ -5,11 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"rido/internal/assert"
+	"rido/internal/config"
 	"rido/internal/log"
 	"rido/internal/store"
 )
 
-func AddCmd(files []string) {
+func AddCmd(cfg config.Config, files []string) {
 	if len(files) < 1 {
 		log.Error("At least one file must be added.")
 
@@ -22,8 +23,10 @@ func AddCmd(files []string) {
 		assert.AssertNoNestedPath(files),
 	)
 
+	store := store.NewStore(cfg)
+
 	for _, f := range files {
-		err := addFile(f)
+		err := addFile(store, f)
 		if err != nil {
 			log.Error(err)
 
@@ -32,7 +35,7 @@ func AddCmd(files []string) {
 	}
 }
 
-func addFile(filename string) error {
+func addFile(st store.Store, filename string) error {
 	origin, err := filepath.Abs(filename)
 	if err != nil {
 		return fmt.Errorf("could not find origin: %w", err)
@@ -43,7 +46,7 @@ func addFile(filename string) error {
 		Origin:   origin,
 	}
 
-	storeItem := store.NewStoreItem(&meta)
+	storeItem := st.NewStoreItem(&meta)
 
 	log.Debug(meta)
 

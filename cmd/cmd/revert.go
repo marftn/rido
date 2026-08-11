@@ -1,5 +1,7 @@
 package cmd
 
-func RevertCmd(_ []string) {
+import "rido/internal/config"
+
+func RevertCmd(_ config.Config, _ []string) {
 
 }

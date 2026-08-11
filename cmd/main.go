@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"rido/cmd/cmd"
+	"rido/internal/config"
 	"rido/internal/log"
 )
 
@@ -17,15 +18,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	cfg := config.NewDummyConfig()
+
 	switch os.Args[1] {
 	case cmd.NameAddCmd:
-		cmd.AddCmd(os.Args[2:])
+		cmd.AddCmd(cfg, os.Args[2:])
 	case cmd.NameListCmd:
-		cmd.ListCmd(os.Args[2:])
+		cmd.ListCmd(cfg, os.Args[2:])
 	case cmd.NameRestoreCmd:
-		cmd.RestoreCmd(os.Args[2:])
+		cmd.RestoreCmd(cfg, os.Args[2:])
 	case cmd.NameRevertCmd:
-		cmd.RevertCmd(os.Args[2:])
+		cmd.RevertCmd(cfg, os.Args[2:])
 	default:
 		usage()
 

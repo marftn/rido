@@ -16,25 +16,56 @@ const (
 )
 
 type Store struct {
-	Items []StoreItem
+	Items  []StoreItem
+	Config config.Config
 }
 
 type StoreItem struct {
-	ID   ulid.ULID
-	Meta *Meta
+	ID    ulid.ULID
+	Meta  *Meta
+	Store *Store
 }
 
-func NewStoreItem(meta *Meta) StoreItem {
-	return StoreItem{
-		ID:   ulid.Make(),
-		Meta: meta,
+func NewStore(cfg config.Config) Store {
+	return Store{
+		Config: cfg,
+		Items:  []StoreItem{},
 	}
 }
 
-func WriteStoreItem(storeItem *StoreItem) error {
-	config := config.NewDummyConfig()
+func (s *Store) NewStoreItem(meta *Meta) StoreItem {
+	storeItem := StoreItem{
+		ID:    ulid.Make(),
+		Meta:  meta,
+		Store: s,
+	}
 
-	storeItemFolder := filepath.Join(config.StoreLocation, storeItem.ID.String())
+	s.Items = append(s.Items, storeItem)
+
+	return storeItem
+}
+
+func (s *Store) FindStoreItem(filename string) (*StoreItem, error) {
+	absPath, err := filepath.Abs(filename)
+	if err != nil {
+		return nil, fmt.Errorf("could not get absolute path for '%s': %w", filename, err)
+	}
+
+	for _, storeItem := range s.Items {
+		if storeItem.Meta.Origin == absPath {
+			return &storeItem, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (s *StoreItem) Path() string {
+	return filepath.Join(s.Store.Config.StoreLocation, s.ID.String())
+}
+
+func WriteStoreItem(storeItem *StoreItem) error {
+	storeItemFolder := storeItem.Path()
 	err := os.MkdirAll(storeItemFolder, fs.DefaultPermissions)
 	if err != nil {
 		return fmt.Errorf("could not create store item folder: %w", err)
@@ -97,6 +128,15 @@ func moveAndLink(meta Meta, dstFolder string) error {
 
 	// TODO: Verify checksum.
 
+	err = ReplaceWithSymlink(&meta, dstFile)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReplaceWithSymlink(meta *Meta, linkTarget string) error {
 	parkDir, err := os.MkdirTemp("", tmpDirPattern)
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
@@ -116,7 +156,7 @@ func moveAndLink(meta Meta, dstFolder string) error {
 		return nil
 	}
 
-	err = os.Symlink(dstFile, meta.Origin)
+	err = os.Symlink(linkTarget, meta.Origin)
 	if err != nil {
 		e := cleanup()
 		if e != nil {

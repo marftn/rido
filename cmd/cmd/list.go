@@ -1,5 +1,7 @@
 package cmd
 
-func ListCmd(_ []string) {
+import "rido/internal/config"
+
+func ListCmd(_ config.Config, _ []string) {
 
 }
