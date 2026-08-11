@@ -4,15 +4,23 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+
+    # Format the repo with nix-treefmt.
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = {nixpkgs, flake-utils, ...}:
-
+  outputs = {nixpkgs, flake-utils, treefmt-nix, ...}:
 
     let defineOutput =
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
+
         packagesBasic = with pkgs; [
           # Shells
           fish
@@ -35,6 +43,7 @@
 
       in
       {
+        formatter = treefmtEval.config.build.wrapper;
         devShells = {
           default = pkgs.mkShell {
             packages = packagesBasic;
