@@ -29,3 +29,7 @@ func CopyFile(dst, src string) error {
 
 	return nil
 }
+
+func CopyDir(dst, src string) error {
+	return os.CopyFS(dst, os.DirFS(src))
+}
