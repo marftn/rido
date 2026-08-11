@@ -42,7 +42,7 @@ func WriteStoreItem(storeItem *StoreItem) error {
 	cleanup := func() {
 		e := os.RemoveAll(storeItemFolder)
 		if e != nil {
-			log.Errorf("cleanup failed: %w", err)
+			log.Errorf("cleanup failed: %v", err)
 		}
 	}
 
@@ -73,14 +73,9 @@ func WriteStoreItem(storeItem *StoreItem) error {
 	return nil
 }
 
+// moveAndLink moves the file described in the meta file to the store item
+// and creates a symlink.
 func moveAndLink(meta Meta, dstFolder string) error {
-	// TODO:
-	// - [x] Copy
-	// - [ ] Verify
-	// - [x] Park
-	// - [x] Link
-	// - [x] Remove
-
 	dstFile := filepath.Join(dstFolder, meta.Filename)
 
 	info, err := os.Lstat(meta.Origin)
@@ -102,19 +97,19 @@ func moveAndLink(meta Meta, dstFolder string) error {
 
 	// TODO: Verify checksum.
 
-	dir, err := os.MkdirTemp("", tmpDirPattern)
+	parkDir, err := os.MkdirTemp("", tmpDirPattern)
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
-	defer os.RemoveAll(dir)
+	defer os.RemoveAll(parkDir)
 
-	parkedFile := filepath.Join(dir, meta.Filename)
-	if e := os.Rename(meta.Origin, parkedFile); e != nil {
-		return fmt.Errorf("failed to move %q to %q: %w", meta.Origin, parkedFile, e)
+	parkFile := filepath.Join(parkDir, meta.Filename)
+	if e := os.Rename(meta.Origin, parkFile); e != nil {
+		return fmt.Errorf("failed to move %q to %q: %w", meta.Origin, parkFile, e)
 	}
 
 	cleanup := func() error {
-		if e := os.Rename(parkedFile, meta.Origin); e != nil {
+		if e := os.Rename(parkFile, meta.Origin); e != nil {
 			return fmt.Errorf("failed to restore parked file: %w", e)
 		}
 
@@ -131,6 +126,5 @@ func moveAndLink(meta Meta, dstFolder string) error {
 		return fmt.Errorf("failed to create symlink: %w", err)
 	}
 
-	// No need to manually remove `parkedFile`: it is done automatically by the deferred call to `os.RemoveAll`.
 	return nil
 }
