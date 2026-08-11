@@ -18,7 +18,12 @@ func RestoreCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	store := store.NewStore(cfg)
+	store, err := store.LoadStore(cfg)
+	if err != nil {
+		log.Errorf("Failed to load store: %v.", err)
+
+		os.Exit(1)
+	}
 
 	for _, f := range files {
 		storeItem, err := store.FindStoreItem(f)
@@ -27,6 +32,7 @@ func RestoreCmd(cfg config.Config, files []string) {
 
 			continue
 		} else if storeItem == nil {
+			log.Debug("Could not find", f)
 			continue
 		}
 

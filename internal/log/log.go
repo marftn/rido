@@ -11,7 +11,7 @@ func Errorf(format string, args ...any) {
 }
 
 func Error(msg ...any) {
-	fmt.Fprintf(os.Stderr, "[ERROR] %s\n", msg...)
+	fmt.Fprintf(os.Stderr, "[ERROR] %s\n", fmt.Sprintln(msg...))
 }
 
 func Infof(format string, args ...any) {
@@ -23,5 +23,10 @@ func Info(msg ...any) {
 }
 
 func Debug(msg ...any) {
-	fmt.Fprintf(os.Stderr, "[DEBUG] %s\n", msg...)
+	fmt.Fprintf(os.Stderr, "[DEBUG] %s", fmt.Sprintln(msg...))
+}
+
+func Warnf(format string, args ...any) {
+	warnMsg := fmt.Sprintf(format, args...)
+	fmt.Fprintf(os.Stderr, "[WARNING] %s", warnMsg)
 }

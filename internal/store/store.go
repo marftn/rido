@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"rido/internal/assert"
 	"rido/internal/config"
 	"rido/internal/fs"
 	"rido/internal/log"
@@ -31,6 +32,17 @@ func NewStore(cfg config.Config) Store {
 		Config: cfg,
 		Items:  []StoreItem{},
 	}
+}
+
+func LoadStore(cfg config.Config) (*Store, error) {
+
+	st := NewStore(cfg)
+	err := st.loadStoreItems()
+	if err != nil {
+		return nil, fmt.Errorf("could not load store items: %w", err)
+	}
+
+	return &st, nil
 }
 
 func (s *Store) NewStoreItem(meta *Meta) StoreItem {
@@ -164,6 +176,61 @@ func ReplaceWithSymlink(meta *Meta, linkTarget string) error {
 		}
 
 		return fmt.Errorf("failed to create symlink: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Store) loadStoreItems() error {
+	storePath := s.Config.StoreLocation
+	entries, err := os.ReadDir(storePath)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			log.Warnf("Store contains non-folder item: '%s'. Skipping.", entry)
+
+			continue
+		}
+
+		id, e := ulid.Parse(entry.Name())
+		if e != nil {
+			log.Warnf("Store contains folder with non-ULID name: '%s'. Skipping.", entry)
+
+			continue
+		}
+
+		metaPath := filepath.Join(storePath, entry.Name(), MetaFilename)
+
+		if ee := assert.AssertFileExists(metaPath); ee != nil {
+			log.Errorf("Failed to access '%s': %v.", metaPath, ee)
+
+			continue
+		}
+
+		f, e := os.Open(metaPath)
+		if e != nil {
+			log.Errorf("Failed to open '%s': %v.", metaPath, e)
+
+			continue
+		}
+
+		meta, e := LoadMetaFile(f)
+		if e != nil {
+			log.Error(e)
+
+			continue
+		}
+
+		storeItem := StoreItem{
+			ID:    id,
+			Meta:  meta,
+			Store: s,
+		}
+
+		s.Items = append(s.Items, storeItem)
 	}
 
 	return nil

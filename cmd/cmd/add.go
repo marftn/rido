@@ -23,7 +23,12 @@ func AddCmd(cfg config.Config, files []string) {
 		assert.AssertNoNestedPath(files),
 	)
 
-	store := store.NewStore(cfg)
+	store, err := store.LoadStore(cfg)
+	if err != nil {
+		log.Errorf("Failed to load store: %v.", err)
+
+		os.Exit(1)
+	}
 
 	for _, f := range files {
 		err := addFile(store, f)
@@ -35,7 +40,7 @@ func AddCmd(cfg config.Config, files []string) {
 	}
 }
 
-func addFile(st store.Store, filename string) error {
+func addFile(st *store.Store, filename string) error {
 	origin, err := filepath.Abs(filename)
 	if err != nil {
 		return fmt.Errorf("could not find origin: %w", err)

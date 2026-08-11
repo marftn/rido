@@ -32,3 +32,19 @@ func WriteMetaFile(file *os.File, meta *Meta) (n int, err error) {
 
 	return
 }
+
+func LoadMetaFile(file *os.File) (*Meta, error) {
+	var data []byte
+	_, err := file.Read(data)
+	if err != nil {
+		return nil, fmt.Errorf("could not read meta file: '%w'", err)
+	}
+
+	var meta Meta
+	err = json.Unmarshal(data, &meta)
+	if err != nil {
+		return nil, fmt.Errorf("could not Unmarshal meta file: %w", err)
+	}
+
+	return &meta, nil
+}
