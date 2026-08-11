@@ -33,3 +33,9 @@ func CopyFile(dst, src string) error {
 func CopyDir(dst, src string) error {
 	return os.CopyFS(dst, os.DirFS(src))
 }
+
+func Exists(filename string) bool {
+	_, err := os.Stat(filename)
+
+	return !os.IsNotExist(err)
+}

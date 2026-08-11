@@ -116,59 +116,32 @@ func WriteStoreItem(storeItem *StoreItem) error {
 	return nil
 }
 
-// moveAndLink moves the file described in the meta file to the store item
-// and creates a symlink.
-func moveAndLink(meta Meta, dstFolder string) error {
-	dstFile := filepath.Join(dstFolder, meta.Filename)
-
-	info, err := os.Lstat(meta.Origin)
-	if err != nil {
-		return fmt.Errorf("failed to lstat file: %w", err)
-	}
-
-	if info.IsDir() {
-		err = fs.CopyDir(dstFile, meta.Origin)
-		if err != nil {
-			return fmt.Errorf("failed to copy dir: %w", err)
-		}
-	} else {
-		err = fs.CopyFile(dstFile, meta.Origin)
-		if err != nil {
-			return fmt.Errorf("failed to copy file: %w", err)
-		}
-	}
-
-	// TODO: Verify checksum.
-
-	err = ReplaceWithSymlink(&meta, dstFile)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func ReplaceWithSymlink(meta *Meta, linkTarget string) error {
-	parkDir, err := os.MkdirTemp("", tmpDirPattern)
-	if err != nil {
-		return fmt.Errorf("failed to create temp dir: %w", err)
-	}
-	defer os.RemoveAll(parkDir)
-
-	parkFile := filepath.Join(parkDir, meta.Filename)
-	if e := os.Rename(meta.Origin, parkFile); e != nil {
-		return fmt.Errorf("failed to move %q to %q: %w", meta.Origin, parkFile, e)
-	}
-
 	cleanup := func() error {
-		if e := os.Rename(parkFile, meta.Origin); e != nil {
-			return fmt.Errorf("failed to restore parked file: %w", e)
-		}
-
 		return nil
 	}
+	if fs.Exists(meta.Origin) {
+		parkDir, err := os.MkdirTemp("", tmpDirPattern)
+		if err != nil {
+			return fmt.Errorf("failed to create temp dir: %w", err)
+		}
+		defer os.RemoveAll(parkDir)
 
-	err = os.Symlink(linkTarget, meta.Origin)
+		parkFile := filepath.Join(parkDir, meta.Filename)
+		if e := os.Rename(meta.Origin, parkFile); e != nil {
+			return fmt.Errorf("failed to move %q to %q: %w", meta.Origin, parkFile, e)
+		}
+
+		cleanup = func() error {
+			if e := os.Rename(parkFile, meta.Origin); e != nil {
+				return fmt.Errorf("failed to restore parked file: %w", e)
+			}
+
+			return nil
+		}
+	}
+
+	err := os.Symlink(linkTarget, meta.Origin)
 	if err != nil {
 		e := cleanup()
 		if e != nil {
@@ -224,6 +197,38 @@ func (s *Store) loadStoreItems() error {
 		}
 
 		s.Items = append(s.Items, storeItem)
+	}
+
+	return nil
+}
+
+// moveAndLink moves the file described in the meta file to the store item
+// and creates a symlink.
+func moveAndLink(meta Meta, dstFolder string) error {
+	dstFile := filepath.Join(dstFolder, meta.Filename)
+
+	info, err := os.Lstat(meta.Origin)
+	if err != nil {
+		return fmt.Errorf("failed to lstat file: %w", err)
+	}
+
+	if info.IsDir() {
+		err = fs.CopyDir(dstFile, meta.Origin)
+		if err != nil {
+			return fmt.Errorf("failed to copy dir: %w", err)
+		}
+	} else {
+		err = fs.CopyFile(dstFile, meta.Origin)
+		if err != nil {
+			return fmt.Errorf("failed to copy file: %w", err)
+		}
+	}
+
+	// TODO: Verify checksum.
+
+	err = ReplaceWithSymlink(&meta, dstFile)
+	if err != nil {
+		return err
 	}
 
 	return nil

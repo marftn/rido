@@ -33,10 +33,16 @@ func RestoreCmd(cfg config.Config, files []string) {
 			continue
 		} else if storeItem == nil {
 			log.Debug("Could not find", f)
+
 			continue
 		}
 
-		restoreFile(storeItem)
+		err = restoreFile(storeItem)
+		if err != nil {
+			log.Errorf("Failed to restore file '%s': %v.", f, err)
+
+			continue
+		}
 	}
 }
 
