@@ -44,6 +44,7 @@ func LoadMetaFile(filename string) (*Meta, error) {
 	err = json.Unmarshal(data, &meta)
 	if err != nil {
 		log.Debug("Meta content:", data)
+
 		return nil, fmt.Errorf("could not unmarshal meta file: %w", err)
 	}
 

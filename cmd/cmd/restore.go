@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"rido/internal/config"
+	"rido/internal/errors"
 	"rido/internal/guard"
 	"rido/internal/log"
 	"rido/internal/store"
@@ -26,20 +27,20 @@ func RestoreCmd(cfg config.Config, files []string) {
 	}
 
 	for _, f := range files {
-		storeItem, err := store.FindStoreItem(f)
-		if err != nil {
-			log.Errorf("Could not find store item: %v.", err)
+		storeItem, e := store.FindStoreItem(f)
+		if errors.IsNotFound(e) {
+			log.Debug("Could not find", f)
 
 			continue
-		} else if storeItem == nil {
-			log.Debug("Could not find", f)
+		} else if e != nil {
+			log.Errorf("Could not find store item: %v.", e)
 
 			continue
 		}
 
-		err = restoreFile(storeItem)
-		if err != nil {
-			log.Errorf("Failed to restore file '%s': %v.", f, err)
+		e = restoreFile(storeItem)
+		if e != nil {
+			log.Errorf("Failed to restore file '%s': %v.", f, e)
 
 			continue
 		}

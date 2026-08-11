@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"rido/internal/assert"
 	"rido/internal/config"
+	"rido/internal/errors"
 	"rido/internal/fs"
 	"rido/internal/log"
 
@@ -35,7 +36,6 @@ func NewStore(cfg config.Config) Store {
 }
 
 func LoadStore(cfg config.Config) (*Store, error) {
-
 	st := NewStore(cfg)
 	err := st.loadStoreItems()
 	if err != nil {
@@ -69,7 +69,7 @@ func (s *Store) FindStoreItem(filename string) (*StoreItem, error) {
 		}
 	}
 
-	return nil, nil
+	return nil, errors.ErrNotFound
 }
 
 func (s *StoreItem) Path() string {
@@ -120,6 +120,7 @@ func ReplaceWithSymlink(meta *Meta, linkTarget string) error {
 	cleanup := func() error {
 		return nil
 	}
+
 	if fs.Exists(meta.Origin) {
 		parkDir, err := os.MkdirTemp("", tmpDirPattern)
 		if err != nil {

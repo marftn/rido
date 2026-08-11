@@ -31,9 +31,9 @@ func AddCmd(cfg config.Config, files []string) {
 	}
 
 	for _, f := range files {
-		err := addFile(store, f)
-		if err != nil {
-			log.Error(err)
+		e := addFile(store, f)
+		if e != nil {
+			log.Error(e)
 
 			os.Exit(1)
 		}
