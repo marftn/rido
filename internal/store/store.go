@@ -210,14 +210,7 @@ func (s *Store) loadStoreItems() error {
 			continue
 		}
 
-		f, e := os.Open(metaPath)
-		if e != nil {
-			log.Errorf("Failed to open '%s': %v.", metaPath, e)
-
-			continue
-		}
-
-		meta, e := LoadMetaFile(f)
+		meta, e := LoadMetaFile(metaPath)
 		if e != nil {
 			log.Error(e)
 

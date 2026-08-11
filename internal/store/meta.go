@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"rido/internal/log"
 )
 
 const (
@@ -33,9 +34,8 @@ func WriteMetaFile(file *os.File, meta *Meta) (n int, err error) {
 	return
 }
 
-func LoadMetaFile(file *os.File) (*Meta, error) {
-	var data []byte
-	_, err := file.Read(data)
+func LoadMetaFile(filename string) (*Meta, error) {
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("could not read meta file: '%w'", err)
 	}
@@ -43,7 +43,8 @@ func LoadMetaFile(file *os.File) (*Meta, error) {
 	var meta Meta
 	err = json.Unmarshal(data, &meta)
 	if err != nil {
-		return nil, fmt.Errorf("could not Unmarshal meta file: %w", err)
+		log.Debug("Meta content:", data)
+		return nil, fmt.Errorf("could not unmarshal meta file: %w", err)
 	}
 
 	return &meta, nil
