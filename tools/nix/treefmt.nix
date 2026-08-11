@@ -11,9 +11,7 @@
       enable = true;
       indent_size = 4;
     };
-    shellcheck.enable = true;
 
-    gofmt.enable = true;
     goimports.enable = true;
 
     # Nix.
@@ -21,5 +19,17 @@
 
     # Typos.
     typos.enable = false;
+  };
+
+  settings = {
+    global.excludes = [
+      "vendor/**"
+    ];
+    formatter.prettier.options = [
+      "--prose-wrap"
+      "always"
+      "--print-width"
+      "100"
+    ];
   };
 }

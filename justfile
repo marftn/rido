@@ -18,6 +18,17 @@ default:
 run *args:
     go run ./cmd/main.go "$@"
 
+# Build the project.
+build *args:
+    #!/usr/bin/env bash
+    export GOBIN="{{build_dir}}/bin"
+
+    echo "Go generate ..."
+    go generate ./...
+
+    echo "Go build ..."
+    go install -tags debug,development "$@" ./...
+
 # Enter the default Nix development shell and execute the command `"$@`.
 develop *args:
     just nix-develop "default" "$@"
@@ -35,6 +46,9 @@ nix-develop *args:
         "{{flake_dir}}#$shell" \
         --command "${args[@]}"
 
+format:
+    just develop treefmt
+
 # Lint the project.
 lint *args:
     golangci-lint run \
@@ -44,16 +58,6 @@ lint *args:
         --config "{{root_dir}}/tools/configs/golangci-lint/golangci.yaml" \
         "$@"
 
-# Build the project.
-build *args:
-    #!/usr/bin/env bash
-    export GOBIN="{{build_dir}}/bin"
-
-    echo "Go generate ..."
-    go generate ./...
-
-    echo "Go build ..."
-    go install -tags debug,development "$@" ./...
 
 # Test the project.
 test *args:
