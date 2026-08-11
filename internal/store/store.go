@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"rido/internal/config"
 	"rido/internal/fs"
+	"rido/internal/log"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -38,10 +39,18 @@ func WriteStoreItem(storeItem *StoreItem) error {
 	if err != nil {
 		return fmt.Errorf("could not create store item folder: %w", err)
 	}
+	cleanup := func() {
+		e := os.RemoveAll(storeItemFolder)
+		if e != nil {
+			log.Errorf("cleanup failed: %w", err)
+		}
+	}
 
 	metaFilename := filepath.Join(storeItemFolder, MetaFilename)
 	metaFile, err := os.Create(metaFilename)
 	if err != nil {
+		cleanup()
+
 		return fmt.Errorf("could not create meta file: %w", err)
 	}
 
@@ -49,11 +58,15 @@ func WriteStoreItem(storeItem *StoreItem) error {
 
 	_, err = WriteMetaFile(metaFile, storeItem.Meta)
 	if err != nil {
+		cleanup()
+
 		return err
 	}
 
 	err = moveAndLink(*storeItem.Meta, storeItemFolder)
 	if err != nil {
+		cleanup()
+
 		return fmt.Errorf("could not move and link file: %w", err)
 	}
 

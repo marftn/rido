@@ -47,12 +47,6 @@ func addFile(filename string) error {
 
 	log.Debug(meta)
 
-	storeName := "/tmp/rido-store/" + storeItem.ID.String()
-	err = os.MkdirAll(storeName, 0700)
-	if err != nil {
-		return fmt.Errorf("could not create store: %w", err)
-	}
-
 	err = store.WriteStoreItem(&storeItem)
 	if err != nil {
 		return err
