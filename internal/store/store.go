@@ -37,7 +37,13 @@ func NewStore(cfg config.Config) Store {
 
 func LoadStore(cfg config.Config) (*Store, error) {
 	st := NewStore(cfg)
-	err := st.loadStoreItems()
+
+	err := createStoreDir(cfg.StoreLocation)
+	if err != nil {
+		return nil, err
+	}
+
+	err = st.loadStoreItems()
 	if err != nil {
 		return nil, fmt.Errorf("could not load store items: %w", err)
 	}
@@ -74,6 +80,10 @@ func (s *Store) FindStoreItem(filename string) (*StoreItem, error) {
 
 func (s *StoreItem) Path() string {
 	return filepath.Join(s.Store.Config.StoreLocation, s.ID.String())
+}
+
+func (s *StoreItem) String() string {
+	return fmt.Sprintf("%s\tSOME_STATUS\tSOME_DATE\t%s", s.ID, s.Meta.Origin)
 }
 
 func WriteStoreItem(storeItem *StoreItem) error {
@@ -230,6 +240,22 @@ func moveAndLink(meta Meta, dstFolder string) error {
 	err = ReplaceWithSymlink(&meta, dstFile)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func createStoreDir(storeLocation string) error {
+	info, err := os.Lstat(storeLocation)
+	if os.IsNotExist(err) {
+		e := os.MkdirAll(storeLocation, fs.DefaultPermissions)
+		if e != nil {
+			return fmt.Errorf("failed to create store folder: %w", e)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to lstat store folder '%s': %w", storeLocation, err)
+	} else if !info.IsDir() {
+		return fmt.Errorf("'%s' exists and is not a folder", storeLocation)
 	}
 
 	return nil
