@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"rido/internal/log"
+	"rido/internal/fs"
 )
 
 const (
@@ -16,36 +16,30 @@ type Meta struct {
 	Origin   string `json:"origin"`
 }
 
-func WriteMetaFile(file *os.File, meta *Meta) (n int, err error) {
-	data, err := json.Marshal(*meta)
+func WriteMetaFile(filename string, meta *Meta) error {
+	data, err := json.Marshal(meta)
 	if err != nil {
-		err = fmt.Errorf("could not marshal meta to JSON: %w", err)
-
-		return
+		return fmt.Errorf("could not marshal meta to JSON: %w", err)
 	}
 
-	n, err = file.Write(data)
-	if err != nil {
-		err = fmt.Errorf("could not write to meta file: %w", err)
-
-		return
+	if e := os.WriteFile(filename, data, fs.FileModeReadOnly); e != nil {
+		return fmt.Errorf("could not write meta file: %w", e)
 	}
 
-	return
+	return nil
 }
 
 func LoadMetaFile(filename string) (*Meta, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("could not read meta file: '%w'", err)
+		return nil, fmt.Errorf("could not read meta file: %w", err)
 	}
 
 	var meta Meta
+
 	err = json.Unmarshal(data, &meta)
 	if err != nil {
-		log.Debug("Meta content:", data)
-
-		return nil, fmt.Errorf("could not unmarshal meta file: %w", err)
+		return nil, fmt.Errorf("could not unmarshal meta file '%s' (%q): %w", filename, data, err)
 	}
 
 	return &meta, nil

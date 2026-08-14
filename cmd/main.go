@@ -18,7 +18,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg := config.NewDummyConfig()
+	cfg, err := config.New()
+	if err != nil {
+		log.Errorf("Failed to load configuration: %v.", err)
+
+		os.Exit(1)
+	}
 
 	switch os.Args[1] {
 	case cmd.NameAddCmd:
@@ -37,5 +42,10 @@ func main() {
 }
 
 func usage() {
-	log.Info("Usage: tbd")
+	log.Info(`Usage: rido <command> [path...]
+
+  add <path>...      move files or directories into the store, leave symlinks
+  list               every store entry: ID, status, added, origin
+  restore <path>...  recreate a symlink something removed
+  revert <path>...   put the payload back and drop the entry`)
 }

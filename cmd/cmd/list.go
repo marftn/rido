@@ -10,6 +10,10 @@ import (
 	"text/tabwriter"
 )
 
+const (
+	padding = 2
+)
+
 func ListCmd(cfg config.Config, args []string) {
 	if len(args) != 0 {
 		log.Error("The 'list' command does not take any argument.")
@@ -33,7 +37,7 @@ func ListCmd(cfg config.Config, args []string) {
 }
 
 func displayTable(items []store.StoreItem) error {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, padding, ' ', 0)
 	titleRow := strings.Join([]string{"ID", "STATUS", "ADDED", "ORIGIN"}, "\t")
 	fmt.Fprintln(w, titleRow)
 

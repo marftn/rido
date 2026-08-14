@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,25 +19,36 @@ func AddCmd(cfg config.Config, files []string) {
 	}
 
 	nilOrExit(
-		assert.AssertFilesExist(files),
-		assert.AssertNoDuplicate(files),
-		assert.AssertNoNestedPath(files),
+		assert.FilesExist(files),
+		assert.NoDuplicate(files),
+		assert.NoNestedPath(files),
 	)
 
-	store, err := store.LoadStore(cfg)
+	st, err := store.LoadStore(cfg)
 	if err != nil {
 		log.Errorf("Failed to load store: %v.", err)
 
 		os.Exit(1)
 	}
 
-	for _, f := range files {
-		e := addFile(store, f)
-		if e != nil {
-			log.Error(e)
+	failed := 0
 
-			os.Exit(1)
+	for _, f := range files {
+		if e := addFile(st, f); e != nil {
+			log.Errorf("Failed to add '%s': %v.", f, e)
+
+			failed++
+
+			continue
 		}
+
+		log.Infof("Added\t%s", f)
+	}
+
+	if failed > 0 {
+		log.Errorf("%d could not be added.\n", failed)
+
+		os.Exit(1)
 	}
 }
 
@@ -44,6 +56,14 @@ func addFile(st *store.Store, filename string) error {
 	origin, err := filepath.Abs(filename)
 	if err != nil {
 		return fmt.Errorf("could not find origin: %w", err)
+	}
+
+	_, err = st.FindStoreItem(origin)
+	if err == nil {
+		// Don't add a file if it's already managed, because it would orphan the previous store item.
+		return errors.New("already managed by rido")
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return err
 	}
 
 	meta := store.Meta{
@@ -55,10 +75,5 @@ func addFile(st *store.Store, filename string) error {
 
 	log.Debug(meta)
 
-	err = store.WriteStoreItem(&storeItem)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return store.WriteStoreItem(&storeItem)
 }

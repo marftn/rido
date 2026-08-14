@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func AssertFilesExist(files []string) error {
+func FilesExist(files []string) error {
 	for _, file := range files {
-		if err := AssertFileExists(file); err != nil {
+		if err := FileExists(file); err != nil {
 			return err
 		}
 	}
@@ -16,25 +17,8 @@ func AssertFilesExist(files []string) error {
 	return nil
 }
 
-func AssertFilesDoNotExist(files []string) error {
-	for _, file := range files {
-		_, err := os.Stat(file)
-
-		if err == nil {
-			return fmt.Errorf("file already exists: %s", file)
-		}
-
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("checking file %s: %w", file, err)
-		}
-	}
-
-	return nil
-}
-
-func AssertFileExists(file string) error {
+func FileExists(file string) error {
 	_, err := os.Stat(file)
-
 	if err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("file does not exist: %s", file)
@@ -46,8 +30,8 @@ func AssertFileExists(file string) error {
 	return nil
 }
 
-func AssertNoDuplicate(items []string) error {
-	seen := make(map[string]struct{})
+func NoDuplicate(items []string) error {
+	seen := make(map[string]struct{}, len(items))
 
 	for _, item := range items {
 		if _, exists := seen[item]; exists {
@@ -60,7 +44,9 @@ func AssertNoDuplicate(items []string) error {
 	return nil
 }
 
-func AssertNoNestedPath(files []string) error {
+// NoNestedPath rejects a set of paths where one contains another, or where two
+// spellings resolve to the same path.
+func NoNestedPath(files []string) error {
 	normalized := make([]string, len(files))
 
 	for i, file := range files {
@@ -78,14 +64,12 @@ func AssertNoNestedPath(files []string) error {
 				continue
 			}
 
-			rel, err := filepath.Rel(parent, child)
-			if err != nil {
-				continue
+			if isEquivalent(parent, child) {
+				return fmt.Errorf("cannot add both '%s' and '%s': same path", files[i], files[j])
 			}
 
-			// child is inside parent
-			if rel != "." && rel != ".." && !startsWithParent(rel) {
-				return fmt.Errorf("cannot add both %s and %s: nested paths", files[i], files[j])
+			if isInsideParent(parent, child) {
+				return fmt.Errorf("cannot add both '%s' and '%s': nested paths", files[i], files[j])
 			}
 		}
 	}
@@ -93,6 +77,20 @@ func AssertNoNestedPath(files []string) error {
 	return nil
 }
 
-func startsWithParent(rel string) bool {
-	return len(rel) >= 3 && rel[:3] == ".."+string(filepath.Separator)
+func isEquivalent(parent, child string) bool {
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+
+	return rel == "."
+}
+
+func isInsideParent(parent, child string) bool {
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+
+	return rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }

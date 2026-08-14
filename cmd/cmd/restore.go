@@ -1,16 +1,16 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"rido/internal/config"
-	"rido/internal/errors"
-	"rido/internal/guard"
 	"rido/internal/log"
 	"rido/internal/store"
 	"rido/internal/tty"
 )
+
+var errSkipped = errors.New("skipped")
 
 func RestoreCmd(cfg config.Config, files []string) {
 	if len(files) < 1 {
@@ -19,41 +19,72 @@ func RestoreCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	store, err := store.LoadStore(cfg)
+	st, err := store.LoadStore(cfg)
 	if err != nil {
 		log.Errorf("Failed to load store: %v.", err)
 
 		os.Exit(1)
 	}
 
+	failed := 0
+
 	for _, f := range files {
-		storeItem, e := store.FindStoreItem(f)
-		if errors.IsNotFound(e) {
-			log.Debug("Could not find", f)
+		e := restoreOne(st, f)
 
-			continue
-		} else if e != nil {
-			log.Errorf("Could not find store item: %v.", e)
+		switch {
+		case e == nil:
+		case errors.Is(e, errSkipped):
+			log.Infof("Skipped\t%s", f)
 
-			continue
+			failed++
+		default:
+			log.Errorf("Failed to restore '%s': %v.", f, e)
+
+			failed++
 		}
+	}
 
-		e = restoreFile(storeItem)
-		if e != nil {
-			log.Errorf("Failed to restore file '%s': %v.", f, e)
+	if failed > 0 {
+		log.Errorf("%d could not be restored.\t", failed)
 
-			continue
-		}
+		os.Exit(1)
 	}
 }
 
-func restoreFile(storeItem *store.StoreItem) error {
+func restoreOne(st *store.Store, filename string) error {
+	storeItem, err := st.FindStoreItem(filename)
+	if err != nil {
+		return err
+	}
+
+	switch status := storeItem.Status(); status {
+	case store.StatusLinked:
+		log.Infof("Already linked\t%s", storeItem.Meta.Origin)
+
+		return nil
+	case store.StatusMissing, store.StatusOccupied:
+		return restoreFile(storeItem, status)
+	case store.StatusStale:
+		return fmt.Errorf(
+			"origin directory of store item '%s' is missing: %s",
+			storeItem.ID,
+			storeItem.Meta.Origin,
+		)
+	case store.StatusBroken:
+		return fmt.Errorf("payload is missing from store entry %s", storeItem.ID)
+	default:
+		return fmt.Errorf("unknown status %q", status)
+	}
+}
+
+func restoreFile(storeItem *store.StoreItem, status store.Status) error {
 	meta := storeItem.Meta
-	if !guard.IsEmptyOrSymlink(meta.Origin) {
+
+	if status == store.StatusOccupied {
 		isYes, err := tty.AskForConfirmation(
 			os.Stdin,
 			os.Stdout,
-			"'%s' is a regular file or folder. Delete it and relink?",
+			"'%s' is not our symlink. Delete it and relink?",
 			meta.Origin,
 		)
 		if err != nil {
@@ -61,14 +92,11 @@ func restoreFile(storeItem *store.StoreItem) error {
 		}
 
 		if !isYes {
-			log.Infof("Skipping file '%s'...", meta.Origin)
-
-			return nil
+			return errSkipped
 		}
 	}
 
-	dstFile := filepath.Join(storeItem.Path(), meta.Filename)
-	err := store.ReplaceWithSymlink(meta, dstFile)
+	err := store.ReplaceWithSymlink(meta, storeItem.PayloadPath())
 	if err != nil {
 		return err
 	}

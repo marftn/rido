@@ -2,6 +2,7 @@ package tty
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -12,7 +13,7 @@ func AskForConfirmation(in io.Reader, out io.Writer, format string, args ...any)
 
 	r := bufio.NewReader(in)
 	line, err := r.ReadString('\n')
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false, err
 	}
 
