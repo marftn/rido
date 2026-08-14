@@ -10,17 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testEnvFilename = ".env"
+)
+
 func TestAddThenRelink(t *testing.T) {
 	repo := t.TempDir()
 	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
 
-	origin := filepath.Join(repo, ".env")
+	origin := filepath.Join(repo, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=1"), fs.FileModeReadOnly))
 
 	st, err := LoadStore(cfg)
 	require.NoError(t, err)
 
-	item := st.NewStoreItem(&Meta{Filename: ".env", Origin: origin})
+	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
 	require.NoError(t, WriteStoreItem(&item))
 
 	target, err := os.Readlink(origin)
@@ -68,6 +72,60 @@ func TestAddThenRelink(t *testing.T) {
 	require.Equal(t, StatusBroken, item.Status())
 }
 
+func TestRevert(t *testing.T) {
+	repo := t.TempDir()
+	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
+
+	origin := filepath.Join(repo, testEnvFilename)
+	require.NoError(t, os.WriteFile(origin, []byte("SECRET=3"), fs.FileModeReadOnly))
+
+	st, err := LoadStore(cfg)
+	require.NoError(t, err)
+
+	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
+	require.NoError(t, WriteStoreItem(&item))
+	require.NoError(t, Revert(&item))
+
+	info, err := os.Lstat(origin)
+	require.NoError(t, err)
+	require.Zero(t, info.Mode().Type(), "the origin must be a regular file again")
+	require.Equal(t, fs.FileModeReadOnly, info.Mode().Perm(), "mode must be preserved")
+
+	data, err := os.ReadFile(origin)
+	require.NoError(t, err)
+	require.Equal(t, "SECRET=3", string(data))
+
+	require.False(t, fs.Exists(item.Path()), "the entry must be dropped")
+
+	entries, err := os.ReadDir(repo)
+	require.NoError(t, err)
+	require.Len(t, entries, 1, "the parked file must be gone")
+}
+
+func TestRevertRecreatesGoneOriginDir(t *testing.T) {
+	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
+
+	st, err := LoadStore(cfg)
+	require.NoError(t, err)
+
+	gone := filepath.Join(t.TempDir(), "oldrepo")
+	require.NoError(t, os.Mkdir(gone, fs.FileModeDefault))
+
+	origin := filepath.Join(gone, testEnvFilename)
+	require.NoError(t, os.WriteFile(origin, []byte("SECRET=4"), fs.FileModeReadOnly))
+
+	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
+	require.NoError(t, WriteStoreItem(&item))
+	require.NoError(t, os.RemoveAll(gone))
+
+	require.Equal(t, StatusStale, item.Status())
+	require.NoError(t, Revert(&item))
+
+	data, err := os.ReadFile(origin)
+	require.NoError(t, err)
+	require.Equal(t, "SECRET=4", string(data))
+}
+
 func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
 	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
 
@@ -77,10 +135,10 @@ func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
 	gone := filepath.Join(t.TempDir(), "oldrepo")
 	require.NoError(t, os.Mkdir(gone, 0o700))
 
-	origin := filepath.Join(gone, ".env")
+	origin := filepath.Join(gone, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=2"), 0o600))
 
-	item := st.NewStoreItem(&Meta{Filename: ".env", Origin: origin})
+	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
 	require.NoError(t, WriteStoreItem(&item))
 	require.NoError(t, os.RemoveAll(gone))
 

@@ -176,30 +176,67 @@ func WriteStoreItem(storeItem *StoreItem) error {
 	return nil
 }
 
-// ReplaceWithSymlink points the origin `meta.Origina` at linkTarget. Whatever sits at
-// the origin is moved aside first and only deleted once the symlink is in place, so a
-// failure restores the starting state.
+// ReplaceWithSymlink points the origin `meta.Origin` at linkTarget.
 func ReplaceWithSymlink(meta *Meta, linkTarget string) error {
-	parkFile := meta.Origin + parkSuffix
+	return replaceOrigin(meta.Origin, func() error {
+		if e := os.Symlink(linkTarget, meta.Origin); e != nil {
+			return fmt.Errorf("failed to create symlink: %w", e)
+		}
+
+		return nil
+	})
+}
+
+// Revert copies the payload back to its origin and drops the entry. The origin's
+// directory is recreated if it is gone, so no entry can be stranded in the store.
+func Revert(storeItem *StoreItem) error {
+	origin := storeItem.Meta.Origin
+
+	if e := os.MkdirAll(filepath.Dir(origin), fs.FileModeDefault); e != nil {
+		return fmt.Errorf("could not recreate origin directory: %w", e)
+	}
+
+	err := replaceOrigin(origin, func() error {
+		return copyPath(origin, storeItem.PayloadPath())
+	})
+	if err != nil {
+		return err
+	}
+
+	if e := os.RemoveAll(storeItem.Path()); e != nil {
+		return fmt.Errorf("could not drop store entry %s: %w", storeItem.ID, e)
+	}
+
+	return nil
+}
+
+// replaceOrigin moves whatever sits at the origin aside, runs write, and only deletes
+// the parked copy once write succeeded, so a failure restores the starting state.
+func replaceOrigin(origin string, write func() error) error {
+	parkFile := origin + parkSuffix
 	parked := false
 
-	if fs.Exists(meta.Origin) {
-		if e := os.Rename(meta.Origin, parkFile); e != nil {
-			return fmt.Errorf("failed to move %q to %q: %w", meta.Origin, parkFile, e)
+	if fs.Exists(origin) {
+		if e := os.Rename(origin, parkFile); e != nil {
+			return fmt.Errorf("failed to move %q to %q: %w", origin, parkFile, e)
 		}
 
 		parked = true
 	}
 
-	err := os.Symlink(linkTarget, meta.Origin)
+	err := write()
 	if err != nil {
+		if e := os.RemoveAll(origin); e != nil {
+			err = fmt.Errorf("%w; failed to remove partial write: %w", err, e)
+		}
+
 		if parked {
-			if e := os.Rename(parkFile, meta.Origin); e != nil {
+			if e := os.Rename(parkFile, origin); e != nil {
 				err = fmt.Errorf("%w; failed to restore parked file: %w", err, e)
 			}
 		}
 
-		return fmt.Errorf("failed to create symlink: %w", err)
+		return err
 	}
 
 	if parked {
@@ -257,21 +294,9 @@ func (s *Store) loadStoreItems() error {
 func moveAndLink(meta Meta, dstFolder string) error {
 	dstFile := filepath.Join(dstFolder, meta.Filename)
 
-	info, err := os.Lstat(meta.Origin)
+	err := copyPath(dstFile, meta.Origin)
 	if err != nil {
-		return fmt.Errorf("failed to lstat file: %w", err)
-	}
-
-	if info.IsDir() {
-		err = fs.CopyDir(dstFile, meta.Origin)
-		if err != nil {
-			return fmt.Errorf("failed to copy dir: %w", err)
-		}
-	} else {
-		err = fs.CopyFile(dstFile, meta.Origin)
-		if err != nil {
-			return fmt.Errorf("failed to copy file: %w", err)
-		}
+		return err
 	}
 
 	// TODO: Verify checksum.
@@ -279,6 +304,28 @@ func moveAndLink(meta Meta, dstFolder string) error {
 	err = ReplaceWithSymlink(&meta, dstFile)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// copyPath copies a file or a directory tree, preserving modes.
+func copyPath(dst, src string) error {
+	info, err := os.Lstat(src)
+	if err != nil {
+		return fmt.Errorf("failed to lstat file: %w", err)
+	}
+
+	if info.IsDir() {
+		if e := fs.CopyDir(dst, src); e != nil {
+			return fmt.Errorf("failed to copy dir: %w", e)
+		}
+
+		return nil
+	}
+
+	if err = fs.CopyFile(dst, src); err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
 	}
 
 	return nil
