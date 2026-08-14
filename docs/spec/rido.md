@@ -12,7 +12,7 @@ agent that follows the symlink.
 $STORE/
   01J8XQ4M7K/
     .env                            payload, original filename
-    meta.json                       {"origin": "/home/you/code/myrepo/.env", "v": 1}
+    meta.json                       {"origin": "/home/you/code/myrepo/.env", "filename": ".env", "v": 1}
 ```
 
 One ULID-named directory per entry. Store root comes from `~/.config/rido/config.json`

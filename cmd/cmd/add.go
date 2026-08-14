@@ -50,10 +50,7 @@ func addFile(st *store.Store, filename string) error {
 		return err
 	}
 
-	meta := store.Meta{
-		Filename: filepath.Base(filename),
-		Origin:   origin,
-	}
+	meta := store.NewMeta(origin)
 
 	storeItem := st.NewStoreItem(&meta)
 

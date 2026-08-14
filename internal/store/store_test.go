@@ -24,7 +24,8 @@ func TestAddThenRelink(t *testing.T) {
 	st, err := LoadStore(cfg)
 	require.NoError(t, err)
 
-	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
+	meta := NewMeta(origin)
+	item := st.NewStoreItem(&meta)
 	require.NoError(t, WriteStoreItem(&item))
 
 	target, err := os.Readlink(origin)
@@ -82,7 +83,8 @@ func TestRevert(t *testing.T) {
 	st, err := LoadStore(cfg)
 	require.NoError(t, err)
 
-	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
+	meta := NewMeta(origin)
+	item := st.NewStoreItem(&meta)
 	require.NoError(t, WriteStoreItem(&item))
 	require.NoError(t, Revert(&item))
 
@@ -114,7 +116,8 @@ func TestRevertRecreatesGoneOriginDir(t *testing.T) {
 	origin := filepath.Join(gone, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=4"), fs.FileModeReadOnly))
 
-	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
+	meta := NewMeta(origin)
+	item := st.NewStoreItem(&meta)
 	require.NoError(t, WriteStoreItem(&item))
 	require.NoError(t, os.RemoveAll(gone))
 
@@ -124,6 +127,23 @@ func TestRevertRecreatesGoneOriginDir(t *testing.T) {
 	data, err := os.ReadFile(origin)
 	require.NoError(t, err)
 	require.Equal(t, "SECRET=4", string(data))
+}
+
+func TestLoadMetaFileRejectsNewerVersion(t *testing.T) {
+	filename := filepath.Join(t.TempDir(), MetaFilename)
+	meta := NewMeta(filepath.Join(t.TempDir(), testEnvFilename))
+
+	require.NoError(t, WriteMetaFile(filename, &meta))
+
+	loaded, err := LoadMetaFile(filename)
+	require.NoError(t, err)
+	require.Equal(t, MetaVersion, loaded.Version)
+
+	meta.Version = MetaVersion + 1
+	require.NoError(t, WriteMetaFile(filename, &meta))
+
+	_, err = LoadMetaFile(filename)
+	require.Error(t, err)
 }
 
 func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
@@ -138,7 +158,8 @@ func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
 	origin := filepath.Join(gone, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=2"), 0o600))
 
-	item := st.NewStoreItem(&Meta{Filename: testEnvFilename, Origin: origin})
+	meta := NewMeta(origin)
+	item := st.NewStoreItem(&meta)
 	require.NoError(t, WriteStoreItem(&item))
 	require.NoError(t, os.RemoveAll(gone))
 

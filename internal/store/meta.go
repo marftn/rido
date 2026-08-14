@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"rido/internal/fs"
 )
 
@@ -11,9 +12,20 @@ const (
 	MetaFilename string = "meta.json"
 )
 
+const MetaVersion = 1
+
 type Meta struct {
 	Filename string `json:"filename"`
 	Origin   string `json:"origin"`
+	Version  int    `json:"v"`
+}
+
+func NewMeta(origin string) Meta {
+	return Meta{
+		Filename: filepath.Base(origin),
+		Origin:   origin,
+		Version:  MetaVersion,
+	}
 }
 
 func WriteMetaFile(filename string, meta *Meta) error {
@@ -40,6 +52,15 @@ func LoadMetaFile(filename string) (*Meta, error) {
 	err = json.Unmarshal(data, &meta)
 	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal meta file '%s' (%q): %w", filename, data, err)
+	}
+
+	if meta.Version > MetaVersion {
+		return nil, fmt.Errorf(
+			"meta file '%s' is version %d, this version of rido only understands up to version %d",
+			filename,
+			meta.Version,
+			MetaVersion,
+		)
 	}
 
 	return &meta, nil
