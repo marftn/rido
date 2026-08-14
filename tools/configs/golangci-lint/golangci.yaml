@@ -9,6 +9,7 @@ linters:
     - canonicalheader
     - copyloopvar
     - cyclop
+    - depguard
     - dupl
     - durationcheck
     - errcheck
@@ -71,6 +72,12 @@ linters:
     cyclop:
       max-complexity: 30
       package-average: 10
+    depguard:
+      rules:
+        logger:
+          deny:
+            - pkg: log
+              desc: use rido/internal/log instead
     errcheck:
       check-type-assertions: true
     exhaustive:
@@ -102,15 +109,6 @@ linters:
           paramsOnly: false
         underef:
           skipRecvDeref: false
-    gomodguard:
-      blocked:
-        modules:
-          - slog:
-              recommendations:
-                - gitlab.com/data-custodian/custodian/components/lib-common/log
-          - github.com/sirupsen/logrus:
-              recommendations:
-                - gitlab.com/data-custodian/custodian/components/lib-common/log
     govet:
       disable:
         - fieldalignment
