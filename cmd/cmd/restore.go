@@ -1,16 +1,14 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"rido/internal/config"
+	"rido/internal/fs"
 	"rido/internal/log"
 	"rido/internal/store"
 	"rido/internal/tty"
 )
-
-var errSkipped = errors.New("skipped")
 
 func RestoreCmd(cfg config.Config, files []string) {
 	if len(files) < 1 {
@@ -26,29 +24,9 @@ func RestoreCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	failed := 0
-
-	for _, f := range files {
-		e := restoreOne(st, f)
-
-		switch {
-		case e == nil:
-		case errors.Is(e, errSkipped):
-			log.Infof("Skipped\t%s", f)
-
-			failed++
-		default:
-			log.Errorf("Failed to restore '%s': %v.", f, e)
-
-			failed++
-		}
-	}
-
-	if failed > 0 {
-		log.Errorf("%d could not be restored.\t", failed)
-
-		os.Exit(1)
-	}
+	runEach(files, "restore", "restored", func(f string) error {
+		return restoreOne(st, f)
+	})
 }
 
 func restoreOne(st *store.Store, filename string) error {
@@ -79,13 +57,18 @@ func restoreOne(st *store.Store, filename string) error {
 
 func restoreFile(storeItem *store.StoreItem, status store.Status) error {
 	meta := storeItem.Meta
+	was := "missing"
 
 	if status == store.StatusOccupied {
+		was = fs.Describe(meta.Origin)
+
 		isYes, err := tty.AskForConfirmation(
 			os.Stdin,
 			os.Stdout,
-			"'%s' is not our symlink. Delete it and relink?",
+			"'%s' is not our symlink (%s, modified %s). Delete it and relink?",
 			meta.Origin,
+			was,
+			fs.ModifiedAgo(meta.Origin),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to get user confirmation: %w", err)
@@ -101,7 +84,7 @@ func restoreFile(storeItem *store.StoreItem, status store.Status) error {
 		return err
 	}
 
-	log.Infof("Relinked\t%s", meta.Origin)
+	log.Infof("Relinked\t%s\t(was %s)", meta.Origin, was)
 
 	return nil
 }

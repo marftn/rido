@@ -31,25 +31,9 @@ func AddCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	failed := 0
-
-	for _, f := range files {
-		if e := addFile(st, f); e != nil {
-			log.Errorf("Failed to add '%s': %v.", f, e)
-
-			failed++
-
-			continue
-		}
-
-		log.Infof("Added\t%s", f)
-	}
-
-	if failed > 0 {
-		log.Errorf("%d could not be added.\n", failed)
-
-		os.Exit(1)
-	}
+	runEach(files, "add", "added", func(f string) error {
+		return addFile(st, f)
+	})
 }
 
 func addFile(st *store.Store, filename string) error {
@@ -75,5 +59,12 @@ func addFile(st *store.Store, filename string) error {
 
 	log.Debug(meta)
 
-	return store.WriteStoreItem(&storeItem)
+	err = store.WriteStoreItem(&storeItem)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Added\t%s\t%s", filename, storeItem.ID)
+
+	return nil
 }

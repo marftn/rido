@@ -136,13 +136,37 @@ func (s *StoreItem) Status() Status {
 }
 
 func (s *StoreItem) String() string {
-	return fmt.Sprintf(
+	status := s.Status()
+
+	row := fmt.Sprintf(
 		"%s\t%s\t%s\t%s",
 		s.ID,
-		s.Status(),
+		status,
 		s.Added().Format(time.DateOnly),
 		s.Meta.Origin,
 	)
+
+	if detail := s.detail(status); detail != "" {
+		row += "\t(" + detail + ")"
+	}
+
+	return row
+}
+
+// detail explains a status that needs a decision, e.g. "dir gone".
+func (s *StoreItem) detail(status Status) string {
+	switch status {
+	case StatusOccupied:
+		return fs.Describe(s.Meta.Origin)
+	case StatusStale:
+		return "dir gone"
+	case StatusBroken:
+		return "payload missing from store"
+	case StatusLinked, StatusMissing:
+		return ""
+	default:
+		return ""
+	}
 }
 
 func WriteStoreItem(storeItem *StoreItem) error {

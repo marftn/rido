@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"rido/internal/config"
+	"rido/internal/fs"
 	"rido/internal/log"
 	"rido/internal/store"
 	"rido/internal/tty"
@@ -24,29 +25,9 @@ func RevertCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	failed := 0
-
-	for _, f := range files {
-		e := revertOne(st, f)
-
-		switch {
-		case e == nil:
-		case errors.Is(e, errSkipped):
-			log.Infof("Skipped\t%s", f)
-
-			failed++
-		default:
-			log.Errorf("Failed to revert '%s': %v.", f, e)
-
-			failed++
-		}
-	}
-
-	if failed > 0 {
-		log.Errorf("%d could not be reverted.\t", failed)
-
-		os.Exit(1)
-	}
+	runEach(files, "revert", "reverted", func(f string) error {
+		return revertOne(st, f)
+	})
 }
 
 func revertOne(st *store.Store, filename string) error {
@@ -72,8 +53,10 @@ func revertFile(storeItem *store.StoreItem, status store.Status) error {
 		isYes, err := tty.AskForConfirmation(
 			os.Stdin,
 			os.Stdout,
-			"'%s' is not our symlink. Delete it and put the payload back?",
+			"'%s' is not our symlink (%s, modified %s). Delete it and put the payload back?",
 			meta.Origin,
+			fs.Describe(meta.Origin),
+			fs.ModifiedAgo(meta.Origin),
 		)
 		if err != nil {
 			return fmt.Errorf("failed to get user confirmation: %w", err)
@@ -82,6 +65,10 @@ func revertFile(storeItem *store.StoreItem, status store.Status) error {
 		if !isYes {
 			return errSkipped
 		}
+	}
+
+	if status == store.StatusStale {
+		log.Infof("Recreating\t%s", filepath.Dir(meta.Origin))
 	}
 
 	err := store.Revert(storeItem)
