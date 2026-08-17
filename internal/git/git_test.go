@@ -72,12 +72,13 @@ func TestCheckPassesAnIgnoredFile(t *testing.T) {
 	requireContent(t, ignore, "/creds.json")
 }
 
-// Stdin is closed under `go test`, so the offer to gitignore is declined.
+// Stdin is closed under `go test`, so Check returns an error if the file is
+// not gitignored.
 func TestCheckPassesWhenTheGitignoreOfferIsDeclined(t *testing.T) {
 	repo := initRepo(t)
 	ignore := writeFile(t, repo, ".gitignore", "/creds.json")
 
-	require.NoError(t, Check(writeFile(t, repo, "other.json", "{}")))
+	require.ErrorIs(t, Check(writeFile(t, repo, "other.json", "{}")), errNoTTY)
 
 	requireContent(t, ignore, "/creds.json")
 }

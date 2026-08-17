@@ -16,7 +16,7 @@ $STORE/
 ```
 
 One ULID-named directory per entry. Store root comes from `~/.config/rido/config.json`
-(`{"store_root": "..."}`), defaulting to `~/.rido/store` if the file or the key is absent. Store dir
+(`{"storeRoot": "..."}`), defaulting to `~/.rido/store` if the file or the key is absent. Store dir
 is `0700`.
 
 Symlinks are always absolute. There is no log file: a ULID embeds its creation time in milliseconds,

@@ -59,6 +59,10 @@ func Check(origin string) error {
 		return nil
 	}
 
+	if !tty.IsTTY() {
+		return errNoTTY
+	}
+
 	return offerGitignore(root, origin, rel)
 }
 

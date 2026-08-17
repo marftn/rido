@@ -104,6 +104,10 @@ func confirm(force bool, format string, args ...any) (bool, error) {
 		return true, nil
 	}
 
+	if !tty.IsTTY() {
+		return force, nil
+	}
+
 	isYes, err := tty.AskForConfirmation(os.Stdin, os.Stdout, format, args...)
 	if err != nil {
 		return false, fmt.Errorf("failed to get user confirmation: %w", err)

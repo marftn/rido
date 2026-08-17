@@ -137,7 +137,7 @@ Note this is the opposite of `git restore` / `git revert`: here `restore` recrea
 Optional. `~/.config/rido/config.json`:
 
 ```json
-{ "store_root": "/media/luks/rido-store" }
+{ "storeRoot": "/media/luks/rido-store" }
 ```
 
 Defaults to `~/.rido/store`.

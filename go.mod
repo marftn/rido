@@ -7,6 +7,7 @@ require (
 	github.com/go-git/go-git/v6 v6.0.0-alpha.5
 	github.com/oklog/ulid/v2 v2.1.2
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/term v0.45.0
 )
 
 require (

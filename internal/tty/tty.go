@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 func AskForConfirmation(in io.Reader, out io.Writer, format string, args ...any) (bool, error) {
@@ -23,4 +26,8 @@ func AskForConfirmation(in io.Reader, out io.Writer, format string, args ...any)
 	default:
 		return false, nil
 	}
+}
+
+func IsTTY() bool {
+	return term.IsTerminal(int(os.Stdin.Fd()))
 }

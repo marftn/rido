@@ -51,7 +51,9 @@ func addFile(st *store.Store, filename string) error {
 		return err
 	}
 
-	if e := git.Check(origin); e != nil {
+	if e := git.Check(origin); git.IsErrNoTTY(e) {
+		return errSkipped
+	} else if e != nil {
 		return e
 	}
 
