@@ -8,15 +8,10 @@ import (
 	"rido/internal/fs"
 	"rido/internal/log"
 	"rido/internal/store"
-	"rido/internal/tty"
 )
 
-func RevertCmd(cfg config.Config, files []string) {
-	if len(files) < 1 {
-		log.Error("At least one file must be specified.")
-
-		os.Exit(1)
-	}
+func RevertCmd(cfg config.Config, args []string) {
+	flags, args := parseFlags(NameRevertCmd, args)
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
@@ -25,12 +20,19 @@ func RevertCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	runEach(files, "revert", "reverted", func(f string) error {
-		return revertOne(st, f)
+	files, err := targets(st, flags, args)
+	if err != nil {
+		log.Errorf("%v.", err)
+
+		os.Exit(1)
+	}
+
+	runEach(files, "revert", "reverted", func(path string) error {
+		return revertOne(st, path, flags.force)
 	})
 }
 
-func revertOne(st *store.Store, filename string) error {
+func revertOne(st *store.Store, filename string, force bool) error {
 	storeItem, err := st.FindStoreItem(filename)
 	if err != nil {
 		return err
@@ -38,7 +40,7 @@ func revertOne(st *store.Store, filename string) error {
 
 	switch status := storeItem.Status(); status {
 	case store.StatusLinked, store.StatusMissing, store.StatusOccupied, store.StatusStale:
-		return revertFile(storeItem, status)
+		return revertFile(storeItem, status, force)
 	case store.StatusBroken:
 		return fmt.Errorf("payload is missing from store entry %s", storeItem.ID)
 	default:
@@ -46,20 +48,19 @@ func revertOne(st *store.Store, filename string) error {
 	}
 }
 
-func revertFile(storeItem *store.StoreItem, status store.Status) error {
+func revertFile(storeItem *store.StoreItem, status store.Status, force bool) error {
 	meta := storeItem.Meta
 
 	if status == store.StatusOccupied {
-		isYes, err := tty.AskForConfirmation(
-			os.Stdin,
-			os.Stdout,
+		isYes, err := confirm(
+			force,
 			"'%s' is not our symlink (%s, modified %s). Delete it and put the payload back?",
 			meta.Origin,
 			fs.Describe(meta.Origin),
 			fs.ModifiedAgo(meta.Origin),
 		)
 		if err != nil {
-			return fmt.Errorf("failed to get user confirmation: %w", err)
+			return err
 		}
 
 		if !isYes {

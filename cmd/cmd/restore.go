@@ -7,15 +7,10 @@ import (
 	"rido/internal/fs"
 	"rido/internal/log"
 	"rido/internal/store"
-	"rido/internal/tty"
 )
 
-func RestoreCmd(cfg config.Config, files []string) {
-	if len(files) < 1 {
-		log.Error("At least one file must be specified.")
-
-		os.Exit(1)
-	}
+func RestoreCmd(cfg config.Config, args []string) {
+	flags, args := parseFlags(NameRestoreCmd, args)
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
@@ -24,12 +19,19 @@ func RestoreCmd(cfg config.Config, files []string) {
 		os.Exit(1)
 	}
 
-	runEach(files, "restore", "restored", func(f string) error {
-		return restoreOne(st, f)
+	files, err := targets(st, flags, args)
+	if err != nil {
+		log.Errorf("%v.", err)
+
+		os.Exit(1)
+	}
+
+	runEach(files, "restore", "restored", func(path string) error {
+		return restoreOne(st, path, flags.force)
 	})
 }
 
-func restoreOne(st *store.Store, filename string) error {
+func restoreOne(st *store.Store, filename string, force bool) error {
 	storeItem, err := st.FindStoreItem(filename)
 	if err != nil {
 		return err
@@ -41,7 +43,7 @@ func restoreOne(st *store.Store, filename string) error {
 
 		return nil
 	case store.StatusMissing, store.StatusOccupied:
-		return restoreFile(storeItem, status)
+		return restoreFile(storeItem, status, force)
 	case store.StatusStale:
 		return fmt.Errorf(
 			"origin directory of store item '%s' is missing: %s",
@@ -55,23 +57,22 @@ func restoreOne(st *store.Store, filename string) error {
 	}
 }
 
-func restoreFile(storeItem *store.StoreItem, status store.Status) error {
+func restoreFile(storeItem *store.StoreItem, status store.Status, force bool) error {
 	meta := storeItem.Meta
 	was := "missing"
 
 	if status == store.StatusOccupied {
 		was = fs.Describe(meta.Origin)
 
-		isYes, err := tty.AskForConfirmation(
-			os.Stdin,
-			os.Stdout,
+		isYes, err := confirm(
+			force,
 			"'%s' is not our symlink (%s, modified %s). Delete it and relink?",
 			meta.Origin,
 			was,
 			fs.ModifiedAgo(meta.Origin),
 		)
 		if err != nil {
-			return fmt.Errorf("failed to get user confirmation: %w", err)
+			return err
 		}
 
 		if !isYes {

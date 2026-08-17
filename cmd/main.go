@@ -42,10 +42,16 @@ func main() {
 }
 
 func usage() {
-	log.Info(`Usage: rido <command> [path...]
+	log.Info(`Usage: rido <command> [flags] [path|id...]
 
-  add <path>...      move files or directories into the store, leave symlinks
-  list               every store entry: ID, status, added, origin
-  restore <path>...  recreate a symlink something removed
-  revert <path>...   put the payload back and drop the entry`)
+  add <path>...             move files or directories into the store, leave symlinks
+  list                      every store entry: ID, status, added, origin
+  restore <path|id...>      recreate a symlink something removed
+  revert <path|id...>       put the payload back and drop the entry
+
+Flags for restore and revert:
+
+  --all          every entry whose origin is under the current directory
+  --store-wide   every entry in the store
+  -f, --force    answer yes to every confirmation`)
 }

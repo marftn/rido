@@ -8,6 +8,7 @@ import (
 	"rido/internal/config"
 	"rido/internal/fs"
 	"rido/internal/log"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -91,6 +92,27 @@ func (s *Store) FindStoreItem(filename string) (*StoreItem, error) {
 	}
 
 	return nil, ErrNotFound
+}
+
+// Under returns the entries whose origin is under dir. An empty dir means the
+// whole store.
+func (s *Store) Under(dir string) []StoreItem {
+	if dir == "" {
+		return s.Items
+	}
+
+	items := []StoreItem{}
+
+	for _, storeItem := range s.Items {
+		rel, err := filepath.Rel(dir, storeItem.Meta.Origin)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			continue
+		}
+
+		items = append(items, storeItem)
+	}
+
+	return items
 }
 
 func (s *StoreItem) Path() string {
