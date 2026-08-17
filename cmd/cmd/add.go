@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"rido/internal/assert"
 	"rido/internal/config"
+	"rido/internal/git"
 	"rido/internal/log"
 	"rido/internal/store"
 )
@@ -47,6 +48,10 @@ func addFile(st *store.Store, filename string) error {
 		// Don't add a file if it's already managed, because it would orphan the previous store item.
 		return errors.New("already managed by rido")
 	} else if !errors.Is(err, store.ErrNotFound) {
+		return err
+	}
+
+	if err := git.Check(origin); err != nil {
 		return err
 	}
 

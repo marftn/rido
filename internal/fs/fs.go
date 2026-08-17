@@ -10,6 +10,7 @@ import (
 const (
 	FileModeDefault  os.FileMode = 0o700
 	FileModeReadOnly os.FileMode = 0o600
+	FileModeShared   os.FileMode = 0o644
 )
 
 const day = 24 * time.Hour
