@@ -29,7 +29,8 @@ func New() (Config, error) {
 
 	confDir, err := os.UserConfigDir()
 	if err != nil {
-		// Not having a user config dir is not an issue. We just use default config.
+		//nolint:nilerr // Not having a user config dir is not an issue. We just use
+		// default config.
 		return cfg, nil
 	}
 
@@ -43,8 +44,8 @@ func New() (Config, error) {
 	}
 
 	var fileCfg Config
-	if err := json.Unmarshal(data, &fileCfg); err != nil {
-		return emptyConfig(), fmt.Errorf("could not parse %s: %w", path, err)
+	if e := json.Unmarshal(data, &fileCfg); e != nil {
+		return emptyConfig(), fmt.Errorf("could not parse %s: %w", path, e)
 	}
 	if fileCfg.StoreRoot != "" {
 		cfg.StoreRoot = expandHome(fileCfg.StoreRoot, home)

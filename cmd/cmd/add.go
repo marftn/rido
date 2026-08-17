@@ -51,8 +51,8 @@ func addFile(st *store.Store, filename string) error {
 		return err
 	}
 
-	if err := git.Check(origin); err != nil {
-		return err
+	if e := git.Check(origin); e != nil {
+		return e
 	}
 
 	meta := store.NewMeta(origin)

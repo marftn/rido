@@ -21,6 +21,7 @@ func newIn(t *testing.T, contents string) (Config, error) {
 			t.Fatal(err)
 		}
 	}
+
 	return New()
 }
 
@@ -29,11 +30,11 @@ func TestNew(t *testing.T) {
 		name, file, want string
 		wantErr          bool
 	}{
-		{name: "no file", want: ".rido/store"},
-		{name: "no key", file: `{}`, want: ".rido/store"},
-		{name: "empty key", file: `{"store_root": ""}`, want: ".rido/store"},
-		{name: "tilde", file: `{"store_root": "~/elsewhere"}`, want: "elsewhere"},
-		{name: "bad json", file: `{`, wantErr: true},
+		{name: "no file", file: "", want: defaultStoreSubPath, wantErr: false},
+		{name: "no key", file: `{}`, want: defaultStoreSubPath, wantErr: false},
+		{name: "empty key", file: `{"storeRoot": ""}`, want: defaultStoreSubPath, wantErr: false},
+		{name: "tilde", file: `{"storeRoot": "~/elsewhere"}`, want: "elsewhere", wantErr: false},
+		{name: "bad json", file: `{`, want: "", wantErr: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg, err := newIn(t, tc.file)
@@ -52,7 +53,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewAbsolutePath(t *testing.T) {
-	cfg, err := newIn(t, `{"store_root": "/mnt/vault"}`)
+	cfg, err := newIn(t, `{"storeRoot": "/mnt/vault"}`)
 	if err != nil {
 		t.Fatal(err)
 	}

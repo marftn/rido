@@ -23,6 +23,7 @@ func Check(origin string) error {
 		&git.PlainOpenOptions{DetectDotGit: true},
 	)
 	if err != nil {
+		//nolint:nilerr // A non-nil err means we're outside a git repo. We can return nil.
 		return nil
 	}
 
@@ -152,8 +153,8 @@ func appendLine(filename, line string) error {
 		return err
 	}
 
-	if _, err := fmt.Fprintf(file, "%s%s\n", sep, line); err != nil {
-		return fmt.Errorf("could not append to %q: %w", filename, err)
+	if _, e := fmt.Fprintf(file, "%s%s\n", sep, line); e != nil {
+		return fmt.Errorf("could not append to %q: %w", filename, e)
 	}
 
 	return file.Close()
@@ -171,8 +172,8 @@ func missingNewline(file *os.File) (string, error) {
 	}
 
 	last := make([]byte, 1)
-	if _, err := file.ReadAt(last, info.Size()-1); err != nil {
-		return "", fmt.Errorf("could not read %q: %w", file.Name(), err)
+	if _, e := file.ReadAt(last, info.Size()-1); e != nil {
+		return "", fmt.Errorf("could not read %q: %w", file.Name(), e)
 	}
 
 	if last[0] == '\n' {

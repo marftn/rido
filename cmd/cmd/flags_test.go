@@ -9,15 +9,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	envFile = ".env"
+	allFlag = "--all"
+)
+
 func TestParseFlagsAndTargets(t *testing.T) {
 	repo := t.TempDir()
 	outside := t.TempDir()
 
 	st := store.NewStore(config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")})
 	for _, origin := range []string{
-		filepath.Join(repo, ".env"),
+		filepath.Join(repo, envFile),
 		filepath.Join(repo, "config", "creds.json"),
-		filepath.Join(outside, ".env"),
+		filepath.Join(outside, envFile),
 	} {
 		meta := store.NewMeta(origin)
 		st.NewStoreItem(&meta)
@@ -32,33 +37,62 @@ func TestParseFlagsAndTargets(t *testing.T) {
 		want  []string
 		fails bool
 	}{
-		{name: "paths", args: []string{".env"}, want: []string{".env"}},
-		{name: "force short", args: []string{"-f", ".env"}, force: true, want: []string{".env"}},
+		{
+			name:  "paths",
+			args:  []string{envFile},
+			force: false,
+			want:  []string{envFile},
+			fails: false,
+		},
+		{
+			name:  "force short",
+			args:  []string{"-f", envFile},
+			force: true,
+			want:  []string{envFile},
+			fails: false,
+		},
 		{
 			name:  "force long",
-			args:  []string{"--force", ".env"},
+			args:  []string{"--force", envFile},
 			force: true,
-			want:  []string{".env"},
-		},
-		{name: "no target", args: nil, fails: true},
-		{
-			name: "all is cwd only",
-			args: []string{"--all"},
-			want: []string{
-				filepath.Join(repo, ".env"),
-				filepath.Join(repo, "config", "creds.json"),
-			},
+			want:  []string{envFile},
+			fails: false,
 		},
 		{
-			name: "store wide",
-			args: []string{"--store-wide"},
-			want: []string{
-				filepath.Join(repo, ".env"),
-				filepath.Join(repo, "config", "creds.json"),
-				filepath.Join(outside, ".env"),
-			},
+			name:  "no target",
+			force: false,
+			args:  nil,
+			want:  []string{envFile},
+			fails: true,
 		},
-		{name: "all with a path", args: []string{"--all", ".env"}, fails: true},
+		{
+			name:  "all is cwd only",
+			args:  []string{allFlag},
+			force: false,
+			want: []string{
+				filepath.Join(repo, envFile),
+				filepath.Join(repo, "config", "creds.json"),
+			},
+			fails: false,
+		},
+		{
+			name:  "store wide",
+			args:  []string{"--store-wide"},
+			force: false,
+			want: []string{
+				filepath.Join(repo, envFile),
+				filepath.Join(repo, "config", "creds.json"),
+				filepath.Join(outside, envFile),
+			},
+			fails: false,
+		},
+		{
+			name:  "all with a path",
+			args:  []string{allFlag, envFile},
+			force: false,
+			want:  []string{},
+			fails: true,
+		},
 	}
 
 	for _, tc := range tests {
@@ -81,12 +115,12 @@ func TestParseFlagsAndTargets(t *testing.T) {
 
 func TestTargetsNoEntryUnderCwd(t *testing.T) {
 	st := store.NewStore(config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")})
-	meta := store.NewMeta(filepath.Join(t.TempDir(), ".env"))
+	meta := store.NewMeta(filepath.Join(t.TempDir(), envFile))
 	st.NewStoreItem(&meta)
 
 	t.Chdir(t.TempDir())
 
-	f, args := parseFlags("restore", []string{"--all"})
+	f, args := parseFlags("restore", []string{allFlag})
 
 	_, err := targets(&st, f, args)
 	require.ErrorContains(t, err, "use --store-wide")
