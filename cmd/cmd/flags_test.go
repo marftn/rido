@@ -13,7 +13,7 @@ func TestParseFlagsAndTargets(t *testing.T) {
 	repo := t.TempDir()
 	outside := t.TempDir()
 
-	st := store.NewStore(config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")})
+	st := store.NewStore(config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")})
 	for _, origin := range []string{
 		filepath.Join(repo, ".env"),
 		filepath.Join(repo, "config", "creds.json"),
@@ -34,12 +34,20 @@ func TestParseFlagsAndTargets(t *testing.T) {
 	}{
 		{name: "paths", args: []string{".env"}, want: []string{".env"}},
 		{name: "force short", args: []string{"-f", ".env"}, force: true, want: []string{".env"}},
-		{name: "force long", args: []string{"--force", ".env"}, force: true, want: []string{".env"}},
+		{
+			name:  "force long",
+			args:  []string{"--force", ".env"},
+			force: true,
+			want:  []string{".env"},
+		},
 		{name: "no target", args: nil, fails: true},
 		{
 			name: "all is cwd only",
 			args: []string{"--all"},
-			want: []string{filepath.Join(repo, ".env"), filepath.Join(repo, "config", "creds.json")},
+			want: []string{
+				filepath.Join(repo, ".env"),
+				filepath.Join(repo, "config", "creds.json"),
+			},
 		},
 		{
 			name: "store wide",
@@ -72,7 +80,7 @@ func TestParseFlagsAndTargets(t *testing.T) {
 }
 
 func TestTargetsNoEntryUnderCwd(t *testing.T) {
-	st := store.NewStore(config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")})
+	st := store.NewStore(config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")})
 	meta := store.NewMeta(filepath.Join(t.TempDir(), ".env"))
 	st.NewStoreItem(&meta)
 

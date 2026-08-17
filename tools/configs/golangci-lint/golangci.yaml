@@ -16,6 +16,7 @@ linters:
     - errname
     - errorlint
     - exhaustive
+    - exhaustruct
     - fatcontext
     - forbidigo
     - funlen
@@ -97,6 +98,7 @@ linters:
         - ^reflect.StructField$
         - ^github.com/spf13/cobra.Command$
         - ^github.com/spf13/cobra.CompletionOptions$
+        - ^github.com/go-git/go-git/v6.PlainOpenOptions$
     funlen:
       lines: 100
       statements: 50

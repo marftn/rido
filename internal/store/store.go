@@ -54,7 +54,7 @@ func NewStore(cfg config.Config) Store {
 func LoadStore(cfg config.Config) (*Store, error) {
 	st := NewStore(cfg)
 
-	err := createStoreDir(cfg.StoreLocation)
+	err := createStoreDir(cfg.StoreRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func (s *Store) Under(dir string) []StoreItem {
 }
 
 func (s *StoreItem) Path() string {
-	return filepath.Join(s.Store.Config.StoreLocation, s.ID.String())
+	return filepath.Join(s.Store.Config.StoreRoot, s.ID.String())
 }
 
 // PayloadPath is the file or directory the origin symlink points at.
@@ -295,7 +295,7 @@ func replaceOrigin(origin string, write func() error) error {
 }
 
 func (s *Store) loadStoreItems() error {
-	storePath := s.Config.StoreLocation
+	storePath := s.Config.StoreRoot
 
 	entries, err := os.ReadDir(storePath)
 	if err != nil {

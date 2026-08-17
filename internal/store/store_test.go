@@ -16,7 +16,7 @@ const (
 
 func TestAddThenRelink(t *testing.T) {
 	repo := t.TempDir()
-	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
+	cfg := config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")}
 
 	origin := filepath.Join(repo, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=1"), fs.FileModeReadOnly))
@@ -75,7 +75,7 @@ func TestAddThenRelink(t *testing.T) {
 
 func TestRevert(t *testing.T) {
 	repo := t.TempDir()
-	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
+	cfg := config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")}
 
 	origin := filepath.Join(repo, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=3"), fs.FileModeReadOnly))
@@ -105,7 +105,7 @@ func TestRevert(t *testing.T) {
 }
 
 func TestRevertRecreatesGoneOriginDir(t *testing.T) {
-	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
+	cfg := config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")}
 
 	st, err := LoadStore(cfg)
 	require.NoError(t, err)
@@ -147,13 +147,13 @@ func TestLoadMetaFileRejectsNewerVersion(t *testing.T) {
 }
 
 func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
-	cfg := config.Config{StoreLocation: filepath.Join(t.TempDir(), "store")}
+	cfg := config.Config{StoreRoot: filepath.Join(t.TempDir(), "store")}
 
 	st, err := LoadStore(cfg)
 	require.NoError(t, err)
 
 	gone := filepath.Join(t.TempDir(), "oldrepo")
-	require.NoError(t, os.Mkdir(gone, 0o700))
+	require.NoError(t, os.Mkdir(gone, fs.FileModeDefault))
 
 	origin := filepath.Join(gone, testEnvFilename)
 	require.NoError(t, os.WriteFile(origin, []byte("SECRET=2"), 0o600))
