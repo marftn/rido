@@ -2,7 +2,7 @@ package main
 
 import (
 	"os"
-	"rido/cmd/cmd"
+	"rido/cmd/rido/cmd"
 	"rido/internal/config"
 	"rido/internal/log"
 )

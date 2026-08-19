@@ -29,6 +29,9 @@ build *args:
     echo "Go build ..."
     go install -tags debug,development "$@" ./...
 
+install:
+    go install ./cmd/rido/rido.go
+
 # Enter the default Nix development shell and execute the command `"$@`.
 develop *args:
     just nix-develop "default" "$@"
