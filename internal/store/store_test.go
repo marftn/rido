@@ -167,65 +167,16 @@ func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
 	require.Equal(t, StatusStale, item.Status())
 }
 
-// TestResolution covers the three resolution paths: bare ID, readlink with a
-// stale origin, and the origin scan.
-func TestResolution(t *testing.T) {
+// addedEntry puts a file under a fresh store and returns the store and its entry.
+// The origin sits in its own directory so tests can move that directory away.
+func addedEntry(t *testing.T) (*Store, *StoreItem) {
+	t.Helper()
+
 	dir := t.TempDir()
-	origin := filepath.Join(dir, "work", ".env")
+	origin := filepath.Join(dir, "work", testEnvFilename)
 
-	if err := os.MkdirAll(filepath.Dir(origin), 0o700); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.WriteFile(origin, []byte("x"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	st, err := LoadStore(config.Config{StoreRoot: filepath.Join(dir, "store")})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	meta := NewMeta(origin)
-
-	item := st.NewStoreItem(&meta)
-	if e := WriteStoreItem(&item); e != nil {
-		t.Fatal(e)
-	}
-
-	if got, e := st.FindStoreItem(item.ID.String()); e != nil || got.ID != item.ID {
-		t.Fatalf("bare ID: %v %v", got, e)
-	}
-
-	if got, e := st.FindStoreItem(origin); e != nil || got.ID != item.ID {
-		t.Fatalf("origin scan: %v %v", got, e)
-	}
-
-	// Move the symlink: the origin is now stale, so only readlink can resolve it.
-	moved := filepath.Join(dir, "moved.env")
-	if e := os.Rename(origin, moved); e != nil {
-		t.Fatal(e)
-	}
-
-	if got, e := st.FindStoreItem(moved); e != nil || got.ID != item.ID {
-		t.Fatalf("readlink: %v %v", got, e)
-	}
-
-	if _, e := st.FindStoreItem(filepath.Join(dir, "nope")); e == nil {
-		t.Fatal("expected ErrNotFound")
-	}
-}
-
-// TestRevertAfterOriginMoved is the spec's re-point recipe: the directory moved,
-// so the symlink resolves the entry while meta.json's origin is gone. The payload
-// must land next to the symlink, not at the vanished origin.
-func TestRevertAfterOriginMoved(t *testing.T) {
-	dir := t.TempDir()
-	oldDir := filepath.Join(dir, "old")
-	origin := filepath.Join(oldDir, testEnvFilename)
-
-	require.NoError(t, os.MkdirAll(oldDir, 0o700))
-	require.NoError(t, os.WriteFile(origin, []byte("SECRET=1"), 0o600))
+	require.NoError(t, os.MkdirAll(filepath.Dir(origin), fs.FileModeDefault))
+	require.NoError(t, os.WriteFile(origin, []byte("SECRET=5"), fs.FileModeReadOnly))
 
 	st, err := LoadStore(config.Config{StoreRoot: filepath.Join(dir, "store")})
 	require.NoError(t, err)
@@ -234,7 +185,54 @@ func TestRevertAfterOriginMoved(t *testing.T) {
 	item := st.NewStoreItem(&meta)
 	require.NoError(t, WriteStoreItem(&item))
 
-	newDir := filepath.Join(dir, "new")
+	return st, &item
+}
+
+func TestResolveByID(t *testing.T) {
+	st, item := addedEntry(t)
+
+	found, err := st.FindStoreItem(item.ID.String())
+	require.NoError(t, err)
+	require.Equal(t, item.ID, found.ID)
+}
+
+func TestResolveByOrigin(t *testing.T) {
+	st, item := addedEntry(t)
+
+	found, err := st.FindStoreItem(item.Meta.Origin)
+	require.NoError(t, err)
+	require.Equal(t, item.ID, found.ID)
+}
+
+func TestResolveWithoutMatch(t *testing.T) {
+	st, _ := addedEntry(t)
+
+	_, err := st.FindStoreItem(filepath.Join(t.TempDir(), "nope"))
+	require.ErrorIs(t, err, ErrNotFound)
+}
+
+// TestResolveMovedLink resolves a symlink that no longer sits at its origin. The
+// entry is found through the link and the gone origin is corrected.
+func TestResolveMovedLink(t *testing.T) {
+	st, item := addedEntry(t)
+
+	moved := filepath.Join(t.TempDir(), "moved.env")
+	require.NoError(t, os.Rename(item.Meta.Origin, moved))
+
+	found, err := st.FindStoreItem(moved)
+	require.NoError(t, err)
+	require.Equal(t, item.ID, found.ID)
+	require.Equal(t, moved, found.Meta.Origin, "a gone origin must be corrected")
+}
+
+// TestRevertAfterOriginMoved is the spec's re-point recipe: the directory moved,
+// so the symlink resolves the entry while meta.json's origin is gone. The payload
+// must be restored where the symlink was, not at the old origin.
+func TestRevertAfterOriginMoved(t *testing.T) {
+	st, item := addedEntry(t)
+
+	oldDir := filepath.Dir(item.Meta.Origin)
+	newDir := filepath.Join(filepath.Dir(oldDir), "moved")
 	require.NoError(t, os.Rename(oldDir, newDir))
 
 	moved := filepath.Join(newDir, testEnvFilename)
@@ -242,16 +240,23 @@ func TestRevertAfterOriginMoved(t *testing.T) {
 	found, err := st.FindStoreItem(moved)
 	require.NoError(t, err)
 	require.Equal(t, StatusLinked, found.Status())
-
 	require.NoError(t, Revert(found))
-
-	content, err := os.ReadFile(moved)
-	require.NoError(t, err, "payload must be restored next to the symlink")
-	require.Equal(t, "SECRET=1", string(content))
 
 	info, err := os.Lstat(moved)
 	require.NoError(t, err)
-	require.NotEqual(t, os.ModeSymlink, info.Mode().Type(), "should be a real file now")
+	require.Zero(t, info.Mode().Type(), "the payload must replace the symlink")
 
 	require.NoDirExists(t, oldDir, "the vanished origin directory must not be recreated")
+}
+
+func TestResolveCopiedLink(t *testing.T) {
+	st, item := addedEntry(t)
+
+	copied := filepath.Join(t.TempDir(), "copy.env")
+	require.NoError(t, os.Symlink(item.PayloadPath(), copied))
+
+	_, err := st.FindStoreItem(copied)
+	require.ErrorIs(t, err, ErrNotOrigin)
+	require.ErrorContains(t, err, item.Meta.Origin, "the error must name the real origin")
+	require.True(t, fs.Exists(item.Meta.Origin), "the origin must be left alone")
 }

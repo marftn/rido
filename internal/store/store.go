@@ -20,7 +20,10 @@ import (
 // parking into a temp dir would fail with EXDEV.
 const parkSuffix = ".rido-tmp"
 
-var ErrNotFound = errors.New("store item not found")
+var (
+	ErrNotFound  = errors.New("store item not found")
+	ErrNotOrigin = errors.New("symlink is not the origin of its entry")
+)
 
 // Status describes what sits at an entry's origin. `linked` is lowercase,
 // anything needing a decision is uppercase.
@@ -85,7 +88,12 @@ func (s *Store) FindStoreItem(target string) (*StoreItem, error) {
 		return item, nil
 	}
 
-	if item, ok := s.getItemWithLink(target); ok {
+	item, err := s.getItemWithLink(target)
+	if err != nil {
+		return nil, err
+	}
+
+	if item != nil {
 		return item, nil
 	}
 
@@ -118,37 +126,54 @@ func (s *Store) getItemWithID(target string) (*StoreItem, bool) {
 	return nil, false
 }
 
-// getItemWithLink returns the item that corresponds to `path` if `path` is a symlink.
-func (s *Store) getItemWithLink(path string) (*StoreItem, bool) {
+// getItemWithLink returns the item the symlink at `path` points into. A nil item
+// and a nil error mean `path` is no symlink of ours, so resolution should carry on.
+func (s *Store) getItemWithLink(path string) (*StoreItem, error) {
 	target, err := os.Readlink(path)
 	if err != nil {
-		return nil, false
+		return nil, nil //nolint:nilerr,nilnil // Not a symlink, so not our business.
 	}
 
 	linkedID := filepath.Base(filepath.Dir(target))
 
 	item, ok := s.getItemWithID(linkedID)
 	if !ok {
-		return nil, false
+		return nil, nil //nolint:nilnil // Points elsewhere, so not our business.
+	}
+
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not get absolute path for '%s': %w", path, err)
+	}
+
+	if abs == item.Meta.Origin {
+		return item, nil
+	}
+
+	// Acting on a file the user didn't attend to act on is wrong, so we return
+	// an error to be sure and notify the user.
+	if fs.Exists(item.Meta.Origin) {
+		return nil, fmt.Errorf(
+			"%w: '%s' is a second symlink to entry %s, whose origin is '%s'",
+			ErrNotOrigin,
+			abs,
+			item.ID,
+			item.Meta.Origin,
+		)
 	}
 
 	// NOTE: The symlink we followed is the origin, whatever meta.json says.
 	// A stale origin is only ever healed by hand.
-	if abs, e := filepath.Abs(path); e == nil {
-		if item.Meta.Origin != abs {
-			log.Warnf(
-				"Stale origin detected: store says '%s', but the argument path is '%s'.\n"+
-					" Using '%s' to restore the file. Please make sure '%s' is no longer there.",
-				item.Meta.Origin,
-				abs,
-				abs,
-				item.Meta.Origin,
-			)
-		}
-		item.Meta.Origin = abs
-	}
+	log.Warnf(
+		"Origin '%s' of entry %s is gone, working on '%s' instead. Re-add the file to record it.",
+		item.Meta.Origin,
+		item.ID,
+		abs,
+	)
 
-	return item, true
+	item.Meta.Origin = abs
+
+	return item, nil
 }
 
 // Under returns the entries whose origin is under dir. An empty dir means the
