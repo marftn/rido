@@ -1,9 +1,12 @@
 package fs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"rido/internal/log"
 	"time"
 )
 
@@ -15,7 +18,7 @@ const (
 
 const day = 24 * time.Hour
 
-func CopyFile(dst, src string) error {
+func CopyFile(dst, src string) (err error) {
 	in, err := os.Open(src)
 	if err != nil {
 		return fmt.Errorf("could not open %q: %w", src, err)
@@ -32,7 +35,13 @@ func CopyFile(dst, src string) error {
 	if err != nil {
 		return fmt.Errorf("could not create %q: %w", dst, err)
 	}
-	defer out.Close()
+	defer func() {
+		err = errors.Join(err, out.Close())
+	}()
+
+	if e := out.Chmod(info.Mode().Perm()); e != nil {
+		return fmt.Errorf("could not chmod %q: %w", dst, e)
+	}
 
 	if _, e := io.Copy(out, in); e != nil {
 		return fmt.Errorf("could not copy %q -> %q: %w", src, dst, e)
@@ -41,11 +50,49 @@ func CopyFile(dst, src string) error {
 	return nil
 }
 
-// CopyDir copies a directory tree.
-// FIXME: os.CopyFS does not preserve modes and rejects irregular files.
-// We need to write a WalkDir copy to preserve original modes.
+// CopyDir copies a directory tree, preserving modes and symlinks, so that
+// `revert` hands the tree back as it was found.
+// NOTE: irregular files (sockets, devices, pipes) are skipped rather than
+// recreated.
 func CopyDir(dst, src string) error {
-	return os.CopyFS(dst, os.DirFS(src))
+	return filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("could not stat %q: %w", path, err)
+		}
+
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+
+		target := filepath.Join(dst, rel)
+
+		switch {
+		case info.IsDir():
+			if e := os.MkdirAll(target, info.Mode().Perm()); e != nil {
+				return fmt.Errorf("could not create %q: %w", target, e)
+			}
+
+			return os.Chmod(target, info.Mode().Perm())
+		case info.Mode().Type() == os.ModeSymlink:
+			link, e := os.Readlink(path)
+			if e != nil {
+				return fmt.Errorf("could not read link %q: %w", path, e)
+			}
+
+			return os.Symlink(link, target)
+		case info.Mode().IsRegular():
+			return CopyFile(target, path)
+		default:
+			log.Warnf("Irregular file '%s' was skipped.", entry.Name())
+			return nil
+		}
+	})
 }
 
 // Exists reports whether the path exists, without following symlinks: a dangling

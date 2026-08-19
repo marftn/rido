@@ -41,3 +41,31 @@ func TestDescribe(t *testing.T) {
 	require.Equal(t, "0s ago", ModifiedAgo(file))
 	require.Equal(t, "unknown", ModifiedAgo(filepath.Join(dir, "gone")))
 }
+
+func TestCopyDir(t *testing.T) {
+	src, dst := t.TempDir(), filepath.Join(t.TempDir(), "copy")
+
+	var fmRWX os.FileMode = 0o777
+	var fmRW os.FileMode = 0o666
+
+	require.NoError(t, os.MkdirAll(filepath.Join(src, "sub"), fmRWX))
+	require.NoError(t, os.Chmod(filepath.Join(src, "sub"), fmRWX))
+	require.NoError(
+		t,
+		os.WriteFile(filepath.Join(src, "sub", "secret"), []byte("x"), FileModeReadOnly),
+	)
+	require.NoError(t, os.Chmod(filepath.Join(src, "sub", "secret"), fmRW))
+	require.NoError(t, os.Symlink("secret", filepath.Join(src, "sub", "link")))
+
+	require.NoError(t, CopyDir(dst, src))
+
+	sub, err := os.Lstat(filepath.Join(dst, "sub"))
+	require.NoError(t, err)
+	require.Equal(t, os.FileMode(fmRWX), sub.Mode().Perm())
+
+	file, err := os.Lstat(filepath.Join(dst, "sub", "secret"))
+	require.NoError(t, err)
+	require.Equal(t, fmRW, file.Mode().Perm())
+
+	require.Equal(t, "symlink", Describe(filepath.Join(dst, "sub", "link")))
+}
