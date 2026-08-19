@@ -16,7 +16,7 @@ default:
 
 # Run an executable.
 run *args:
-    go run ./cmd/rido/main.go "$@"
+    go run ./main.go "$@"
 
 # Build the project.
 build *args:
@@ -30,7 +30,7 @@ build *args:
     go install -tags debug,development "$@" ./...
 
 install:
-    go install ./cmd/rido
+    go install ./
 
 # Enter the default Nix development shell and execute the command `"$@`.
 develop *args:

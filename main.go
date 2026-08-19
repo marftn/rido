@@ -4,7 +4,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/marftn/rido/cmd/rido/cmd"
+	"github.com/marftn/rido/internal/cmd"
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/log"
 )
