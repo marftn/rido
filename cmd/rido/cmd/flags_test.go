@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"path/filepath"
-	"rido/internal/config"
-	"rido/internal/store"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/store"
 	"testing"
 
 	"github.com/stretchr/testify/require"

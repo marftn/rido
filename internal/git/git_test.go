@@ -3,7 +3,7 @@ package git
 import (
 	"os"
 	"path/filepath"
-	"rido/internal/fs"
+	"github.com/marftn/rido/internal/fs"
 	"testing"
 
 	"github.com/go-git/go-git/v6"

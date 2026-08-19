@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"rido/internal/log"
+	"github.com/marftn/rido/internal/log"
 	"time"
 )
 

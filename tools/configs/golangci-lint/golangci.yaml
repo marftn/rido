@@ -78,7 +78,7 @@ linters:
         logger:
           deny:
             - pkg: log
-              desc: use rido/internal/log instead
+              desc: use github.com/marftn/rido/internal/log instead
     errcheck:
       check-type-assertions: true
     exhaustive:

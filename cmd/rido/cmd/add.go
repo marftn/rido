@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"rido/internal/assert"
-	"rido/internal/config"
-	"rido/internal/git"
-	"rido/internal/log"
-	"rido/internal/store"
+	"github.com/marftn/rido/internal/assert"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/git"
+	"github.com/marftn/rido/internal/log"
+	"github.com/marftn/rido/internal/store"
 )
 
 func AddCmd(cfg config.Config, files []string) {

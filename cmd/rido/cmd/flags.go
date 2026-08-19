@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"rido/internal/log"
-	"rido/internal/store"
-	"rido/internal/tty"
+	"github.com/marftn/rido/internal/log"
+	"github.com/marftn/rido/internal/store"
+	"github.com/marftn/rido/internal/tty"
 	"strings"
 )
 

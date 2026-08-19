@@ -2,9 +2,10 @@ package main
 
 import (
 	"os"
-	"rido/cmd/rido/cmd"
-	"rido/internal/config"
-	"rido/internal/log"
+
+	"github.com/marftn/rido/cmd/rido/cmd"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/log"
 )
 
 const (

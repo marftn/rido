@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"rido/internal/config"
-	"rido/internal/fs"
-	"rido/internal/log"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/fs"
+	"github.com/marftn/rido/internal/log"
 	"strings"
 	"time"
 

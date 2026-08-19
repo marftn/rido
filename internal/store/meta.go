@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"rido/internal/fs"
+	"github.com/marftn/rido/internal/fs"
 )
 
 const (

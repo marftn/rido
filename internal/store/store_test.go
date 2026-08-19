@@ -3,8 +3,8 @@ package store
 import (
 	"os"
 	"path/filepath"
-	"rido/internal/config"
-	"rido/internal/fs"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/fs"
 	"testing"
 
 	"github.com/stretchr/testify/require"

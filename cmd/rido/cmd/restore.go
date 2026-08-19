@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"rido/internal/config"
-	"rido/internal/fs"
-	"rido/internal/log"
-	"rido/internal/store"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/fs"
+	"github.com/marftn/rido/internal/log"
+	"github.com/marftn/rido/internal/store"
 )
 
 func RestoreCmd(cfg config.Config, args []string) {

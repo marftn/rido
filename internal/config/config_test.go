@@ -3,7 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"rido/internal/fs"
+	"github.com/marftn/rido/internal/fs"
 	"testing"
 )
 

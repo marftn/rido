@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"rido/internal/config"
-	"rido/internal/fs"
-	"rido/internal/log"
-	"rido/internal/store"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/fs"
+	"github.com/marftn/rido/internal/log"
+	"github.com/marftn/rido/internal/store"
 )
 
 func RevertCmd(cfg config.Config, args []string) {

@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"rido/internal/config"
-	"rido/internal/log"
-	"rido/internal/store"
+	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/log"
+	"github.com/marftn/rido/internal/store"
 	"strings"
 	"text/tabwriter"
 )

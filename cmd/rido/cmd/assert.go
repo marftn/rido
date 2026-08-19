@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"os"
-	"rido/internal/log"
+	"github.com/marftn/rido/internal/log"
 )
 
 func nilOrExit(errs ...error) {

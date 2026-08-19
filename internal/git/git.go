@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"rido/internal/fs"
-	"rido/internal/tty"
+	"github.com/marftn/rido/internal/fs"
+	"github.com/marftn/rido/internal/tty"
 	"strings"
 
 	"github.com/go-git/go-billy/v6"

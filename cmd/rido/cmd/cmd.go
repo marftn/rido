@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"rido/internal/log"
+	"github.com/marftn/rido/internal/log"
 	"strings"
 )
 
