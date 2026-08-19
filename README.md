@@ -56,6 +56,12 @@ This is what you see on your local machine:
 .env -> real file
 ```
 
+## Installation
+
+```sh
+go install github.com/marftn/rido@latest
+```
+
 ## Usage
 
 ### Add existing files:
