@@ -260,3 +260,17 @@ func TestResolveCopiedLink(t *testing.T) {
 	require.ErrorContains(t, err, item.Meta.Origin, "the error must name the real origin")
 	require.True(t, fs.Exists(item.Meta.Origin), "the origin must be left alone")
 }
+
+func TestVerifyCopyRejectsMismatch(t *testing.T) {
+	dir := t.TempDir()
+	src := filepath.Join(dir, "src")
+	dst := filepath.Join(dir, "dst")
+
+	require.NoError(t, os.WriteFile(src, []byte("SECRET=1"), fs.FileModeReadOnly))
+	require.NoError(t, os.WriteFile(dst, []byte("SECRET=truncated"), fs.FileModeReadOnly))
+
+	require.ErrorIs(t, verifyCopy(dst, src), ErrChecksumMismatch)
+
+	require.NoError(t, os.WriteFile(dst, []byte("SECRET=1"), fs.FileModeReadOnly))
+	require.NoError(t, verifyCopy(dst, src))
+}

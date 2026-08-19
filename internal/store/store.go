@@ -23,6 +23,8 @@ const parkSuffix = ".rido-tmp"
 var (
 	ErrNotFound  = errors.New("store item not found")
 	ErrNotOrigin = errors.New("symlink is not the origin of its entry")
+
+	ErrChecksumMismatch = errors.New("checksum mismatch after copy")
 )
 
 // Status describes what sits at an entry's origin. `linked` is lowercase,
@@ -427,8 +429,6 @@ func moveAndLink(meta Meta, dstFolder string) error {
 		return err
 	}
 
-	// TODO: Verify checksum.
-
 	err = ReplaceWithSymlink(&meta, dstFile)
 	if err != nil {
 		return err
@@ -437,23 +437,40 @@ func moveAndLink(meta Meta, dstFolder string) error {
 	return nil
 }
 
-// copyPath copies a file or a directory tree, preserving modes.
+// copyPath copies a file or a directory tree, preserving modes and verifying that
+// the copy is intact (checksum).
 func copyPath(dst, src string) error {
 	info, err := os.Lstat(src)
 	if err != nil {
 		return fmt.Errorf("failed to lstat file: %w", err)
 	}
 
+	doCopy := fs.CopyFile
 	if info.IsDir() {
-		if e := fs.CopyDir(dst, src); e != nil {
-			return fmt.Errorf("failed to copy dir: %w", e)
-		}
-
-		return nil
+		doCopy = fs.CopyDir
 	}
 
-	if err = fs.CopyFile(dst, src); err != nil {
-		return fmt.Errorf("failed to copy file: %w", err)
+	if e := doCopy(dst, src); e != nil {
+		return fmt.Errorf("failed to copy %q: %w", src, e)
+	}
+
+	return verifyCopy(dst, src)
+}
+
+// verifyCopy compares the sha256 of the copy with the source.
+func verifyCopy(dst, src string) error {
+	srcSum, err := fs.Checksum(src)
+	if err != nil {
+		return err
+	}
+
+	dstSum, err := fs.Checksum(dst)
+	if err != nil {
+		return err
+	}
+
+	if srcSum != dstSum {
+		return fmt.Errorf("%w: copied %q to %q", ErrChecksumMismatch, src, dst)
 	}
 
 	return nil
