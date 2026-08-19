@@ -127,7 +127,28 @@ func (s *Store) getItemWithLink(path string) (*StoreItem, bool) {
 
 	linkedID := filepath.Base(filepath.Dir(target))
 
-	return s.getItemWithID(linkedID)
+	item, ok := s.getItemWithID(linkedID)
+	if !ok {
+		return nil, false
+	}
+
+	// NOTE: The symlink we followed is the origin, whatever meta.json says.
+	// A stale origin is only ever healed by hand.
+	if abs, e := filepath.Abs(path); e == nil {
+		if item.Meta.Origin != abs {
+			log.Warnf(
+				"Stale origin detected: store says '%s', but the argument path is '%s'.\n"+
+					" Using '%s' to restore the file. Please make sure '%s' is no longer there.",
+				item.Meta.Origin,
+				abs,
+				abs,
+				item.Meta.Origin,
+			)
+		}
+		item.Meta.Origin = abs
+	}
+
+	return item, true
 }
 
 // Under returns the entries whose origin is under dir. An empty dir means the

@@ -86,11 +86,13 @@ func CopyDir(dst, src string) error {
 				return fmt.Errorf("could not read link %q: %w", path, e)
 			}
 
+			//nolint:gosec // G122: local copy of a user-owned tree into their own 0700 store.
 			return os.Symlink(link, target)
 		case info.Mode().IsRegular():
 			return CopyFile(target, path)
 		default:
 			log.Warnf("Irregular file '%s' was skipped.", entry.Name())
+
 			return nil
 		}
 	})

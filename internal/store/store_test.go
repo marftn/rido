@@ -189,8 +189,8 @@ func TestResolution(t *testing.T) {
 	meta := NewMeta(origin)
 
 	item := st.NewStoreItem(&meta)
-	if err := WriteStoreItem(&item); err != nil {
-		t.Fatal(err)
+	if e := WriteStoreItem(&item); e != nil {
+		t.Fatal(e)
 	}
 
 	if got, e := st.FindStoreItem(item.ID.String()); e != nil || got.ID != item.ID {
@@ -203,8 +203,8 @@ func TestResolution(t *testing.T) {
 
 	// Move the symlink: the origin is now stale, so only readlink can resolve it.
 	moved := filepath.Join(dir, "moved.env")
-	if err := os.Rename(origin, moved); err != nil {
-		t.Fatal(err)
+	if e := os.Rename(origin, moved); e != nil {
+		t.Fatal(e)
 	}
 
 	if got, e := st.FindStoreItem(moved); e != nil || got.ID != item.ID {
@@ -214,4 +214,44 @@ func TestResolution(t *testing.T) {
 	if _, e := st.FindStoreItem(filepath.Join(dir, "nope")); e == nil {
 		t.Fatal("expected ErrNotFound")
 	}
+}
+
+// TestRevertAfterOriginMoved is the spec's re-point recipe: the directory moved,
+// so the symlink resolves the entry while meta.json's origin is gone. The payload
+// must land next to the symlink, not at the vanished origin.
+func TestRevertAfterOriginMoved(t *testing.T) {
+	dir := t.TempDir()
+	oldDir := filepath.Join(dir, "old")
+	origin := filepath.Join(oldDir, testEnvFilename)
+
+	require.NoError(t, os.MkdirAll(oldDir, 0o700))
+	require.NoError(t, os.WriteFile(origin, []byte("SECRET=1"), 0o600))
+
+	st, err := LoadStore(config.Config{StoreRoot: filepath.Join(dir, "store")})
+	require.NoError(t, err)
+
+	meta := NewMeta(origin)
+	item := st.NewStoreItem(&meta)
+	require.NoError(t, WriteStoreItem(&item))
+
+	newDir := filepath.Join(dir, "new")
+	require.NoError(t, os.Rename(oldDir, newDir))
+
+	moved := filepath.Join(newDir, testEnvFilename)
+
+	found, err := st.FindStoreItem(moved)
+	require.NoError(t, err)
+	require.Equal(t, StatusLinked, found.Status())
+
+	require.NoError(t, Revert(found))
+
+	content, err := os.ReadFile(moved)
+	require.NoError(t, err, "payload must be restored next to the symlink")
+	require.Equal(t, "SECRET=1", string(content))
+
+	info, err := os.Lstat(moved)
+	require.NoError(t, err)
+	require.NotEqual(t, os.ModeSymlink, info.Mode().Type(), "should be a real file now")
+
+	require.NoDirExists(t, oldDir, "the vanished origin directory must not be recreated")
 }

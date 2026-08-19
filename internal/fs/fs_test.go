@@ -61,7 +61,7 @@ func TestCopyDir(t *testing.T) {
 
 	sub, err := os.Lstat(filepath.Join(dst, "sub"))
 	require.NoError(t, err)
-	require.Equal(t, os.FileMode(fmRWX), sub.Mode().Perm())
+	require.Equal(t, fmRWX, sub.Mode().Perm())
 
 	file, err := os.Lstat(filepath.Join(dst, "sub", "secret"))
 	require.NoError(t, err)
