@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
 	"github.com/marftn/rido/internal/assert"
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/git"

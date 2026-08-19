@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"github.com/marftn/rido/internal/log"
 	"strings"
+
+	"github.com/marftn/rido/internal/log"
 )
 
 const (

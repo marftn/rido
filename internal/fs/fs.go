@@ -6,8 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"github.com/marftn/rido/internal/log"
 	"time"
+
+	"github.com/marftn/rido/internal/log"
 )
 
 const (

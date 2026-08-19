@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"path/filepath"
+	"testing"
+
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/store"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 )

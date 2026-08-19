@@ -3,11 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
+
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/log"
 	"github.com/marftn/rido/internal/store"
-	"strings"
-	"text/tabwriter"
 )
 
 const (

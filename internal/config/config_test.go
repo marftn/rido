@@ -3,8 +3,9 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"github.com/marftn/rido/internal/fs"
 	"testing"
+
+	"github.com/marftn/rido/internal/fs"
 )
 
 func newIn(t *testing.T, contents string) (Config, error) {

@@ -3,8 +3,9 @@ package git
 import (
 	"os"
 	"path/filepath"
-	"github.com/marftn/rido/internal/fs"
 	"testing"
+
+	"github.com/marftn/rido/internal/fs"
 
 	"github.com/go-git/go-git/v6"
 	"github.com/stretchr/testify/require"

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+
 	"github.com/marftn/rido/internal/log"
 )
 

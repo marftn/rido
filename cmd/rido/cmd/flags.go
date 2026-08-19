@@ -5,10 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+
 	"github.com/marftn/rido/internal/log"
 	"github.com/marftn/rido/internal/store"
 	"github.com/marftn/rido/internal/tty"
-	"strings"
 )
 
 var (
