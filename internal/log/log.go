@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/marftn/rido/internal/build"
 )
 
 func Errorf(format string, args ...any) {
@@ -23,6 +25,10 @@ func Info(msg ...any) {
 }
 
 func Debug(msg ...any) {
+	if !build.IsDebug {
+		return
+	}
+
 	fmt.Fprintf(os.Stderr, "[DEBUG] %s", fmt.Sprintln(msg...))
 }
 

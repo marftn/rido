@@ -18,6 +18,10 @@ default:
 run *args:
     go run ./main.go "$@"
 
+# Run an executable with the `debug` tag.
+debug *args:
+    go run -tags debug ./main.go "$@"
+
 # Build the project.
 build *args:
     #!/usr/bin/env bash
@@ -27,7 +31,7 @@ build *args:
     go generate ./...
 
     echo "Go build ..."
-    go install -tags debug,development "$@" ./...
+    go install -tags debug "$@" ./...
 
 install:
     go install ./
