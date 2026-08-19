@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime/debug"
 
 	"github.com/marftn/rido/cmd/rido/cmd"
 	"github.com/marftn/rido/internal/config"
@@ -17,6 +18,17 @@ func main() {
 		usage()
 
 		os.Exit(1)
+	}
+
+	switch os.Args[1] {
+	case "version", "--version", "-v":
+		log.Info(version())
+
+		return
+	case "help", "--help", "-h":
+		usage()
+
+		return
 	}
 
 	cfg, err := config.New()
@@ -42,6 +54,15 @@ func main() {
 	}
 }
 
+func version() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok || info.Main.Version == "" {
+		return "unknown"
+	}
+
+	return info.Main.Version
+}
+
 func usage() {
 	log.Info(`Usage: rido <command> [flags] [path|id...]
 
@@ -49,6 +70,8 @@ func usage() {
   list                      every store entry: ID, status, added, origin
   restore <path|id...>      recreate a symlink something removed
   revert <path|id...>       put the payload back and drop the entry
+  version                   print the version of this binary
+  help                      print this message
 
 Flags for restore and revert:
 

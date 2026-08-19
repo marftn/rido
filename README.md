@@ -44,7 +44,7 @@ repo/
 
 One directory per entry, named with a ULID. `meta.json` records where the file came from.
 
-This is what your agent see inside an isolated sandbox:
+This is what your agent sees inside an isolated sandbox:
 
 ```
 .env -> ENOENT
@@ -57,6 +57,8 @@ This is what you see on your local machine:
 ```
 
 ## Installation
+
+Linux and macOS. Windows is not supported: creating symlinks there needs elevated privileges.
 
 ```sh
 go install github.com/marftn/rido@latest
@@ -159,6 +161,9 @@ It does **not** protect against:
 - malware running as your user
 - someone with filesystem access to the private store
 
+The store needs to be owned and trusted. A `meta.json` file records where a payload belongs, so anyone able to write
+into the store decides where the next `restore` puts a file. Keep it `0700`, and on your own volume.
+
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
