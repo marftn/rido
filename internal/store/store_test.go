@@ -3,9 +3,10 @@ package store
 import (
 	"os"
 	"path/filepath"
+	"testing"
+
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/fs"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -164,4 +165,53 @@ func TestStatusStaleWhenOriginDirIsGone(t *testing.T) {
 	require.NoError(t, os.RemoveAll(gone))
 
 	require.Equal(t, StatusStale, item.Status())
+}
+
+// TestResolution covers the three resolution paths: bare ID, readlink with a
+// stale origin, and the origin scan.
+func TestResolution(t *testing.T) {
+	dir := t.TempDir()
+	origin := filepath.Join(dir, "work", ".env")
+
+	if err := os.MkdirAll(filepath.Dir(origin), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(origin, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	st, err := LoadStore(config.Config{StoreRoot: filepath.Join(dir, "store")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta := NewMeta(origin)
+
+	item := st.NewStoreItem(&meta)
+	if err := WriteStoreItem(&item); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, e := st.FindStoreItem(item.ID.String()); e != nil || got.ID != item.ID {
+		t.Fatalf("bare ID: %v %v", got, e)
+	}
+
+	if got, e := st.FindStoreItem(origin); e != nil || got.ID != item.ID {
+		t.Fatalf("origin scan: %v %v", got, e)
+	}
+
+	// Move the symlink: the origin is now stale, so only readlink can resolve it.
+	moved := filepath.Join(dir, "moved.env")
+	if err := os.Rename(origin, moved); err != nil {
+		t.Fatal(err)
+	}
+
+	if got, e := st.FindStoreItem(moved); e != nil || got.ID != item.ID {
+		t.Fatalf("readlink: %v %v", got, e)
+	}
+
+	if _, e := st.FindStoreItem(filepath.Join(dir, "nope")); e == nil {
+		t.Fatal("expected ErrNotFound")
+	}
 }

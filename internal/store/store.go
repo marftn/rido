@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/fs"
 	"github.com/marftn/rido/internal/log"
-	"strings"
-	"time"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -79,19 +80,54 @@ func (s *Store) NewStoreItem(meta *Meta) StoreItem {
 	return storeItem
 }
 
-func (s *Store) FindStoreItem(filename string) (*StoreItem, error) {
-	absPath, err := filepath.Abs(filename)
-	if err != nil {
-		return nil, fmt.Errorf("could not get absolute path for '%s': %w", filename, err)
+func (s *Store) FindStoreItem(target string) (*StoreItem, error) {
+	if item, ok := s.getItemWithID(target); ok {
+		return item, nil
 	}
 
-	for _, storeItem := range s.Items {
-		if storeItem.Meta.Origin == absPath {
-			return &storeItem, nil
+	if item, ok := s.getItemWithLink(target); ok {
+		return item, nil
+	}
+
+	absPath, err := filepath.Abs(target)
+	if err != nil {
+		return nil, fmt.Errorf("could not get absolute path for '%s': %w", target, err)
+	}
+
+	for i := range s.Items {
+		if s.Items[i].Meta.Origin == absPath {
+			return &s.Items[i], nil
 		}
 	}
 
 	return nil, ErrNotFound
+}
+
+func (s *Store) getItemWithID(target string) (*StoreItem, bool) {
+	id, err := ulid.Parse(target)
+	if err != nil {
+		return nil, false
+	}
+
+	for i := range s.Items {
+		if s.Items[i].ID == id {
+			return &s.Items[i], true
+		}
+	}
+
+	return nil, false
+}
+
+// getItemWithLink returns the item that corresponds to `path` if `path` is a symlink.
+func (s *Store) getItemWithLink(path string) (*StoreItem, bool) {
+	target, err := os.Readlink(path)
+	if err != nil {
+		return nil, false
+	}
+
+	linkedID := filepath.Base(filepath.Dir(target))
+
+	return s.getItemWithID(linkedID)
 }
 
 // Under returns the entries whose origin is under dir. An empty dir means the
