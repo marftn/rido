@@ -42,6 +42,21 @@ func TestDescribe(t *testing.T) {
 	require.Equal(t, "unknown", ModifiedAgo(filepath.Join(dir, "gone")))
 }
 
+func TestDescribeTree(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(dir, "sub"), FileModeDefault))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, ".env"), make([]byte, 412), FileModeReadOnly))
+	require.NoError(t, os.Symlink(".env", filepath.Join(dir, "link")))
+
+	require.Equal(t, "1 file, 412 B", DescribeTree(dir), "symlinks and dirs must not count")
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "sub", "b"), make([]byte, 1024), FileModeReadOnly))
+	require.Equal(t, "2 files, 1.4 KB", DescribeTree(dir))
+
+	require.Empty(t, DescribeTree(filepath.Join(dir, ".env")), "a file has no tree")
+	require.Empty(t, DescribeTree(filepath.Join(dir, "nope")))
+}
+
 func TestCopyDir(t *testing.T) {
 	src, dst := t.TempDir(), filepath.Join(t.TempDir(), "copy")
 

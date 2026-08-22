@@ -129,6 +129,53 @@ func Describe(filename string) string {
 	}
 }
 
+// DirSize returns the number of files and size of a directory.
+func DirSize(dir string) (files int, size int64, err error) {
+	err = filepath.WalkDir(dir, func(_ string, entry os.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+
+		entryInfo, e := entry.Info()
+		if e != nil {
+			return e
+		}
+
+		if entryInfo.Mode().IsRegular() {
+			files++
+			size += entryInfo.Size()
+		}
+
+		return nil
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return files, size, nil
+}
+
+// DescribeTree reports what a directory holds, e.g. "3 files, 2.1 KB". Anything
+// that is not a directory, and a tree that cannot be walked, yield "".
+func DescribeTree(dir string) string {
+	info, err := os.Lstat(dir)
+	if err != nil || !info.IsDir() {
+		return ""
+	}
+
+	files, size, err := DirSize(dir)
+	if err != nil {
+		return ""
+	}
+
+	noun := "files"
+	if files == 1 {
+		noun = "file"
+	}
+
+	return fmt.Sprintf("%d %s, %s", files, noun, humanSize(size))
+}
+
 // ModifiedAgo reports how long ago a path was last modified, e.g. "12m ago".
 func ModifiedAgo(filename string) string {
 	info, err := os.Lstat(filename)

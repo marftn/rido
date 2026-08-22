@@ -8,6 +8,7 @@ import (
 
 	"github.com/marftn/rido/internal/assert"
 	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/fs"
 	"github.com/marftn/rido/internal/git"
 	"github.com/marftn/rido/internal/log"
 	"github.com/marftn/rido/internal/store"
@@ -69,7 +70,12 @@ func addFile(st *store.Store, filename string) error {
 		return err
 	}
 
-	log.Infof("Added\t%s\t%s", filename, storeItem.ID)
+	line := fmt.Sprintf("Added\t%s\t%s", filename, storeItem.ID)
+	if detail := fs.DescribeTree(storeItem.PayloadPath()); detail != "" {
+		line += "\t(" + detail + ")"
+	}
+
+	log.Info(line)
 
 	return nil
 }
