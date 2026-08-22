@@ -1,5 +1,7 @@
 # rido
 
+*(pronounced "ree-doh")*
+
 Keep sensitive files out of coding sandboxes without changing your workflow.
 
 `rido` moves files outside your repository and leaves symlinks behind. Your local environment keeps

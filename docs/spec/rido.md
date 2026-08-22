@@ -175,6 +175,9 @@ ID          STATUS    ADDED       ORIGIN
 | `STALE`    | the origin's dir is gone                                       | `rido revert <id>`, then re-add |
 | `BROKEN`   | entry exists, payload missing from the store                   | none available                  |
 
+A dangling symlink at the origin is `OCCUPIED`, not `MISSING`: it may point into an
+unmounted volume, so it is never deleted without asking. Use `-f` to relink in bulk.
+
 A stale origin is never healed automatically. Re-point it by hand:
 
 ```
