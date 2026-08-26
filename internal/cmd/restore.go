@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/fs"
@@ -10,24 +9,23 @@ import (
 	"github.com/marftn/rido/internal/store"
 )
 
-func RestoreCmd(cfg config.Config, args []string) {
-	flags, args := parseFlags(NameRestoreCmd, args)
+func RestoreCmd(cfg config.Config, args []string) error {
+	flags, args, err := parseFlags(NameRestoreCmd, args)
+	if err != nil {
+		return err
+	}
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
-		log.Errorf("Failed to load store: %v.", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
 	files, err := targets(st, flags, args)
 	if err != nil {
-		log.Errorf("%v.", err)
-
-		os.Exit(1)
+		return err
 	}
 
-	runEach(files, "restore", "restored", func(path string) error {
+	return runEach(files, "restore", "restored", func(path string) error {
 		return restoreOne(st, path, flags.force)
 	})
 }
@@ -60,16 +58,16 @@ func restoreOne(st *store.Store, filename string, force bool) error {
 
 func restoreFile(storeItem *store.StoreItem, status store.Status, force bool) error {
 	meta := storeItem.Meta
-	was := "missing"
+	fileDescription := fs.FileDescMissing
 
 	if status == store.StatusOccupied {
-		was = fs.Describe(meta.Origin)
+		fileDescription = fs.Describe(meta.Origin)
 
 		isYes, err := confirm(
 			force,
 			"'%s' is not our symlink (%s, modified %s). Delete it and relink?",
 			meta.Origin,
-			was,
+			fileDescription,
 			fs.ModifiedAgo(meta.Origin),
 		)
 		if err != nil {
@@ -86,7 +84,7 @@ func restoreFile(storeItem *store.StoreItem, status store.Status, force bool) er
 		return err
 	}
 
-	log.Infof("Relinked\t%s\t(was %s)", meta.Origin, was)
+	log.Infof("Relinked\t%s\t(was %s)", meta.Origin, fileDescription)
 
 	return nil
 }

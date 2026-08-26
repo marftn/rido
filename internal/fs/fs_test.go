@@ -10,11 +10,15 @@ import (
 
 func TestHumanSize(t *testing.T) {
 	for size, want := range map[int64]string{
-		0:       "0 B",
-		412:     "412 B",
-		1023:    "1023 B",
-		1024:    "1.0 KB",
-		2202009: "2.1 MB",
+		0:         "0 B",
+		412:       "412 B",
+		1023:      "1023 B",
+		1024:      "1.0 KB",
+		2202009:   "2.1 MB",
+		1 << 40:   "1.0 TB",
+		1 << 50:   "1.0 PB",
+		1 << 60:   "1.0 EB",
+		1<<63 - 1: "8.0 EB",
 	} {
 		require.Equal(t, want, humanSize(size))
 	}
@@ -40,6 +44,21 @@ func TestDescribe(t *testing.T) {
 
 	require.Equal(t, "0s ago", ModifiedAgo(file))
 	require.Equal(t, "unknown", ModifiedAgo(filepath.Join(dir, "gone")))
+}
+
+func TestDescribeTree(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(dir, "sub"), FileModeDefault))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, ".env"), make([]byte, 412), FileModeReadOnly))
+	require.NoError(t, os.Symlink(".env", filepath.Join(dir, "link")))
+
+	require.Equal(t, "1 file, 412 B", DescribeTree(dir), "symlinks and dirs must not count")
+
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "sub", "b"), make([]byte, 1024), FileModeReadOnly))
+	require.Equal(t, "2 files, 1.4 KB", DescribeTree(dir))
+
+	require.Empty(t, DescribeTree(filepath.Join(dir, ".env")), "a file has no tree")
+	require.Empty(t, DescribeTree(filepath.Join(dir, "nope")))
 }
 
 func TestCopyDir(t *testing.T) {

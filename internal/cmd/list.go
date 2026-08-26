@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -15,28 +16,24 @@ const (
 	padding = 2
 )
 
-func ListCmd(cfg config.Config, args []string) {
+func ListCmd(cfg config.Config, args []string) error {
 	if len(args) != 0 {
-		log.Error("The 'list' command does not take any argument.")
-
-		os.Exit(1)
+		return errors.New("the 'list' command does not take any argument")
 	}
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
-		log.Errorf("Failed to load store: %v.", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
 	err = displayTable(st.Items)
 	if err != nil {
-		log.Errorf("Failed to display list: %v", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to display list: %w", err)
 	}
 
 	log.Infof("\n%s", summarize(st.Items))
+
+	return nil
 }
 
 // summarize counts entries by what they need.

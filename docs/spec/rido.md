@@ -86,12 +86,8 @@ it later are hidden too.
 
 ```
 $ rido add secrets/
-  copy    3 files, 1 dir  → $STORE/01J8XQA1/secrets/
-  verify  sha256 × 3     ok
-  park    secrets → secrets.rido-tmp
-  link    secrets → $STORE/01J8XQA1/secrets
-  rm      secrets.rido-tmp
-  added   secrets/  (3 files, 2.1 KB)
+Added	secrets/	01J8XQA1	(3 files, 2.1 KB)
+1 added
 ```
 
 | Found while walking  | Treatment                                            |
@@ -108,7 +104,7 @@ The park is one rename of the top directory, so rollback is one move whatever th
 
 | At the origin                   | Behaviour                          |
 | ------------------------------- | ---------------------------------- |
-| nothing, or a dangling symlink  | relink, no prompt                  |
+| nothing                         | relink, no prompt                  |
 | anything that isn't our symlink | confirm, then delete it and relink |
 
 Confirmation defaults to No. Without a TTY there is no prompt: conflicting paths are skipped,
@@ -117,7 +113,9 @@ listed, and the command exits 1. `-f/--force` answers yes.
 ```
 $ rido restore --all
   relinked  .env.staging        (was missing)
-  relinked  config/creds.json   (was dangling)
+  config/creds.json is a dangling symlink (modified 3d ago)
+  delete it and relink? [y/N] y
+  relinked  config/creds.json
   .env is a regular file (412 B, modified 12m ago)
   delete it and relink? [y/N] y
   relinked  .env
@@ -174,6 +172,9 @@ ID          STATUS    ADDED       ORIGIN
 | `OCCUPIED` | a regular file, or a symlink pointing elsewhere, is in the way | `rido restore`, prompts         |
 | `STALE`    | the origin's dir is gone                                       | `rido revert <id>`, then re-add |
 | `BROKEN`   | entry exists, payload missing from the store                   | none available                  |
+
+A dangling symlink at the origin is `OCCUPIED`, not `MISSING`: it may point into an unmounted
+volume, so it is never deleted without asking. Use `-f` to relink in bulk.
 
 A stale origin is never healed automatically. Re-point it by hand:
 

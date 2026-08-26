@@ -25,19 +25,25 @@ type commonFlags struct {
 	force     bool
 }
 
-func parseFlags(name string, args []string) (commonFlags, []string) {
+func parseFlags(name string, args []string) (commonFlags, []string, error) {
 	var f commonFlags
 
-	set := flag.NewFlagSet(name, flag.ExitOnError)
+	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	set.BoolVar(&f.all, "all", false, "every entry whose origin is under the current directory")
 	set.BoolVar(&f.storeWide, "store-wide", false, "every entry in the store")
 	set.BoolVar(&f.force, "force", false, "answer yes to every confirmation")
 	set.BoolVar(&f.force, "f", false, "shorthand for --force")
 
-	// ExitOnError already exited if a flag was unknown or malformed.
-	_ = set.Parse(args)
+	// Parse already printed what went wrong, or the usage for -h.
+	if err := set.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return f, nil, ErrHelp
+		}
 
-	return f, set.Args()
+		return f, nil, ErrReported
+	}
+
+	return f, set.Args(), nil
 }
 
 // targets is what a run acts on: the given paths and IDs, or the origins that

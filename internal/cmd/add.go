@@ -1,39 +1,39 @@
 package cmd
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/marftn/rido/internal/assert"
 	"github.com/marftn/rido/internal/config"
+	"github.com/marftn/rido/internal/fs"
 	"github.com/marftn/rido/internal/git"
 	"github.com/marftn/rido/internal/log"
 	"github.com/marftn/rido/internal/store"
 )
 
-func AddCmd(cfg config.Config, files []string) {
+func AddCmd(cfg config.Config, files []string) error {
 	if len(files) < 1 {
-		log.Error("At least one file must be added.")
-
-		os.Exit(1)
+		return errors.New("at least one file must be added")
 	}
 
-	nilOrExit(
+	err := cmp.Or(
 		assert.FilesExist(files),
 		assert.NoDuplicate(files),
 		assert.NoNestedPath(files),
 	)
+	if err != nil {
+		return err
+	}
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
-		log.Errorf("Failed to load store: %v.", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
-	runEach(files, "add", "added", func(f string) error {
+	return runEach(files, "add", "added", func(f string) error {
 		return addFile(st, f)
 	})
 }
@@ -69,7 +69,12 @@ func addFile(st *store.Store, filename string) error {
 		return err
 	}
 
-	log.Infof("Added\t%s\t%s", filename, storeItem.ID)
+	line := fmt.Sprintf("Added\t%s\t%s", filename, storeItem.ID)
+	if detail := fs.DescribeTree(storeItem.PayloadPath()); detail != "" {
+		line += "\t(" + detail + ")"
+	}
+
+	log.Info(line)
 
 	return nil
 }

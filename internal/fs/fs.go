@@ -15,6 +15,13 @@ const (
 	FileModeDefault  os.FileMode = 0o700
 	FileModeReadOnly os.FileMode = 0o600
 	FileModeShared   os.FileMode = 0o644
+
+	FileDescDirectory       = "directory"
+	FileDescMissing         = "missing"
+	FileDescRegularFile     = "regular file"
+	FileDescUnknown         = "unknown"
+	FileDescSymlink         = "symlink"
+	FileDescDanglingSymlink = "dangling symlink"
 )
 
 const day = 24 * time.Hour
@@ -110,23 +117,70 @@ func Exists(filename string) bool {
 func Describe(filename string) string {
 	info, err := os.Lstat(filename)
 	if err != nil {
-		return "unknown"
+		return FileDescUnknown
 	}
 
 	switch mode := info.Mode(); {
 	case mode.IsDir():
-		return "directory"
+		return FileDescDirectory
 	case mode.Type() == os.ModeSymlink:
 		if _, e := os.Stat(filename); e != nil {
-			return "dangling symlink"
+			return FileDescDanglingSymlink
 		}
 
-		return "symlink"
+		return FileDescSymlink
 	case mode.IsRegular():
-		return "regular file, " + humanSize(info.Size())
+		return fmt.Sprintf("%s, %s", FileDescRegularFile, humanSize(info.Size()))
 	default:
 		return mode.Type().String()
 	}
+}
+
+// DirSize returns the number of files and size of a directory.
+func DirSize(dir string) (files int, size int64, err error) {
+	err = filepath.WalkDir(dir, func(_ string, entry os.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+
+		entryInfo, e := entry.Info()
+		if e != nil {
+			return e
+		}
+
+		if entryInfo.Mode().IsRegular() {
+			files++
+			size += entryInfo.Size()
+		}
+
+		return nil
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return files, size, nil
+}
+
+// DescribeTree reports what a directory holds, e.g. "3 files, 2.1 KB". Anything
+// that is not a directory, and a tree that cannot be walked, yield "".
+func DescribeTree(dir string) string {
+	info, err := os.Lstat(dir)
+	if err != nil || !info.IsDir() {
+		return ""
+	}
+
+	files, size, err := DirSize(dir)
+	if err != nil {
+		return ""
+	}
+
+	noun := "files"
+	if files == 1 {
+		noun = "file"
+	}
+
+	return fmt.Sprintf("%d %s, %s", files, noun, humanSize(size))
 }
 
 // ModifiedAgo reports how long ago a path was last modified, e.g. "12m ago".
@@ -154,15 +208,18 @@ func ModifiedAgo(filename string) string {
 func humanSize(size int64) string {
 	const unit = 1024
 
+	// No need for more than EB (exabytes) because we use int64 anyway.
+	const units = "KMGTPE"
+
 	if size < unit {
 		return fmt.Sprintf("%d B", size)
 	}
 
 	div, exp := int64(unit), 0
-	for n := size / unit; n >= unit; n /= unit {
+	for n := size / unit; n >= unit && exp < len(units)-1; n /= unit {
 		div *= unit
 		exp++
 	}
 
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGT"[exp])
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), units[exp])
 }

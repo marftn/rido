@@ -20,6 +20,17 @@ jobs:
       - run: go vet ./...
       - run: go test -race ./...
 
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test -race ./...
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -31,7 +42,5 @@ jobs:
         with:
           version: v2.12.2
           args: >-
-            --max-issues-per-linter 0
-            --max-same-issues 0
-            --timeout 10m0s
-            --config tools/configs/golangci-lint/golangci.yaml
+            --max-issues-per-linter 0 --max-same-issues 0 --timeout 10m0s --config
+            tools/configs/golangci-lint/golangci.yaml

@@ -98,7 +98,8 @@ func TestParseFlagsAndTargets(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			f, args := parseFlags("restore", tc.args)
+			f, args, err := parseFlags("restore", tc.args)
+			require.NoError(t, err)
 			require.Equal(t, tc.force, f.force)
 
 			got, err := targets(&st, f, args)
@@ -121,8 +122,9 @@ func TestTargetsNoEntryUnderCwd(t *testing.T) {
 
 	t.Chdir(t.TempDir())
 
-	f, args := parseFlags("restore", []string{allFlag})
+	f, args, err := parseFlags("restore", []string{allFlag})
+	require.NoError(t, err)
 
-	_, err := targets(&st, f, args)
+	_, err = targets(&st, f, args)
 	require.ErrorContains(t, err, "use --store-wide")
 }
