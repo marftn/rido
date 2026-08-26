@@ -1,6 +1,6 @@
 # rido
 
-*(pronounced "ree-doh")*
+_(pronounced "ree-doh")_
 
 Keep sensitive files out of coding sandboxes without changing your workflow.
 
@@ -144,7 +144,7 @@ Note this is the opposite of `git restore` / `git revert`: here `restore` recrea
 
 ## Configuration
 
-Optional. `~/.config/rido/config.json`:
+Optional. `~/.config/rido/config.json`, or `$XDG_CONFIG_HOME/rido/config.json`.
 
 ```json
 { "storeRoot": "/media/luks/rido-store" }
@@ -163,8 +163,9 @@ It does **not** protect against:
 - malware running as your user
 - someone with filesystem access to the private store
 
-The store needs to be owned and trusted. A `meta.json` file records where a payload belongs, so anyone able to write
-into the store decides where the next `restore` puts a file. Keep it `0700`, and on your own volume.
+The store needs to be owned and trusted. A `meta.json` file records where a payload belongs, so
+anyone able to write into the store decides where the next `restore` puts a file. Keep it `0700`,
+and on your own volume.
 
 ## License
 

@@ -14,11 +14,11 @@ func newIn(t *testing.T, contents string) (Config, error) {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
 	if contents != "" {
-		dir := filepath.Join(home, ".config", "rido")
+		dir := filepath.Join(home, ".config", configFolder)
 		if err := os.MkdirAll(dir, fs.FileModeDefault); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(dir, "config.json"), []byte(contents), fs.FileModeReadOnly); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, configFilename), []byte(contents), fs.FileModeReadOnly); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -60,5 +60,36 @@ func TestNewAbsolutePath(t *testing.T) {
 	}
 	if cfg.StoreRoot != "/mnt/vault" {
 		t.Errorf("StoreRoot = %q", cfg.StoreRoot)
+	}
+}
+
+// Without a usable XDG_CONFIG_HOME, the config is read from ~/.config on every
+// platform, including macOS.
+func TestNewWithoutXDGConfigHome(t *testing.T) {
+	for _, xdg := range []string{"", "relative/path"} {
+		t.Run(xdg, func(t *testing.T) {
+			home := t.TempDir()
+			t.Setenv("HOME", home)
+			t.Setenv("XDG_CONFIG_HOME", xdg)
+
+			dir := filepath.Join(home, ".config", configFolder)
+			if err := os.MkdirAll(dir, fs.FileModeDefault); err != nil {
+				t.Fatal(err)
+			}
+
+			file := filepath.Join(dir, configFilename)
+			if err := os.WriteFile(file, []byte(`{"storeRoot": "/mnt/vault"}`), fs.FileModeReadOnly); err != nil {
+				t.Fatal(err)
+			}
+
+			cfg, err := New()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if cfg.StoreRoot != "/mnt/vault" {
+				t.Errorf("StoreRoot = %q, want /mnt/vault", cfg.StoreRoot)
+			}
+		})
 	}
 }

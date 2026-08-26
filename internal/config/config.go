@@ -27,14 +27,7 @@ func New() (Config, error) {
 	}
 	cfg := Config{StoreRoot: filepath.Join(home, defaultStoreSubPath)}
 
-	confDir, err := os.UserConfigDir()
-	if err != nil {
-		//nolint:nilerr // Not having a user config dir is not an issue. We just use
-		// default config.
-		return cfg, nil
-	}
-
-	path := filepath.Join(confDir, configFolder, configFilename)
+	path := filepath.Join(configDir(home), configFolder, configFilename)
 	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return cfg, nil
@@ -52,6 +45,19 @@ func New() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// configDir returns the location of the user's config folder: `$XDG_CONFIG_HOME` or
+// `~/.config`.
+// We do not use `os.UserConfigDir` because it points to `~/Library/Application Support`
+// on macOS. Relative `$XDG_CONFIG_HOME` values are ignored so the config path
+// does not depend on rido's working directory.
+func configDir(home string) string {
+	if dir := os.Getenv("XDG_CONFIG_HOME"); filepath.IsAbs(dir) {
+		return dir
+	}
+
+	return filepath.Join(home, ".config")
 }
 
 // emptyConfig returns `Config{}`. It is meant to be used on error returns, where
