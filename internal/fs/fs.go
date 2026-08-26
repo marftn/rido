@@ -15,6 +15,13 @@ const (
 	FileModeDefault  os.FileMode = 0o700
 	FileModeReadOnly os.FileMode = 0o600
 	FileModeShared   os.FileMode = 0o644
+
+	FileDescDirectory       = "directory"
+	FileDescMissing         = "missing"
+	FileDescRegularFile     = "regular file"
+	FileDescUnknown         = "unknown"
+	FileDescSymlink         = "symlink"
+	FileDescDanglingSymlink = "dangling symlink"
 )
 
 const day = 24 * time.Hour
@@ -110,20 +117,20 @@ func Exists(filename string) bool {
 func Describe(filename string) string {
 	info, err := os.Lstat(filename)
 	if err != nil {
-		return "unknown"
+		return FileDescUnknown
 	}
 
 	switch mode := info.Mode(); {
 	case mode.IsDir():
-		return "directory"
+		return FileDescDirectory
 	case mode.Type() == os.ModeSymlink:
 		if _, e := os.Stat(filename); e != nil {
-			return "dangling symlink"
+			return FileDescDanglingSymlink
 		}
 
-		return "symlink"
+		return FileDescSymlink
 	case mode.IsRegular():
-		return "regular file, " + humanSize(info.Size())
+		return fmt.Sprintf("%s, %s", FileDescRegularFile, humanSize(info.Size()))
 	default:
 		return mode.Type().String()
 	}

@@ -58,16 +58,16 @@ func restoreOne(st *store.Store, filename string, force bool) error {
 
 func restoreFile(storeItem *store.StoreItem, status store.Status, force bool) error {
 	meta := storeItem.Meta
-	was := "missing"
+	fileDescription := fs.FileDescMissing
 
 	if status == store.StatusOccupied {
-		was = fs.Describe(meta.Origin)
+		fileDescription = fs.Describe(meta.Origin)
 
 		isYes, err := confirm(
 			force,
 			"'%s' is not our symlink (%s, modified %s). Delete it and relink?",
 			meta.Origin,
-			was,
+			fileDescription,
 			fs.ModifiedAgo(meta.Origin),
 		)
 		if err != nil {
@@ -84,7 +84,7 @@ func restoreFile(storeItem *store.StoreItem, status store.Status, force bool) er
 		return err
 	}
 
-	log.Infof("Relinked\t%s\t(was %s)", meta.Origin, was)
+	log.Infof("Relinked\t%s\t(was %s)", meta.Origin, fileDescription)
 
 	return nil
 }
