@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	iofs "io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -161,17 +162,21 @@ type node struct {
 	Body string
 }
 
-// treeOf lists a tree as a map, so two trees compare in one assertion.
-func treeOf(t *testing.T, root string) map[string]node {
+// treeOf lists a tree as a map, so two trees compare in one assertion. The tree
+// is opened as a root, so every read stays inside it whatever the symlinks say.
+func treeOf(t *testing.T, dir string) map[string]node {
 	t.Helper()
 
+	root, err := os.OpenRoot(dir)
+	require.NoError(t, err)
+
+	defer root.Close()
+
+	tree := root.FS()
 	nodes := map[string]node{}
 
-	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
-		require.NoError(t, err)
-
-		rel, relErr := filepath.Rel(root, path)
-		require.NoError(t, relErr)
+	err = iofs.WalkDir(tree, ".", func(path string, entry iofs.DirEntry, walkErr error) error {
+		require.NoError(t, walkErr)
 
 		info, infoErr := entry.Info()
 		require.NoError(t, infoErr)
@@ -182,19 +187,19 @@ func treeOf(t *testing.T, root string) map[string]node {
 		case info.IsDir():
 			n.Kind = "dir"
 		case info.Mode().Type() == os.ModeSymlink:
-			target, linkErr := os.Readlink(path)
+			target, linkErr := iofs.ReadLink(tree, path)
 			require.NoError(t, linkErr)
 
 			// A symlink has no mode of its own worth comparing.
 			n = node{Kind: "symlink", Mode: 0, Body: target}
 		default:
-			data, readErr := os.ReadFile(path)
+			data, readErr := iofs.ReadFile(tree, path)
 			require.NoError(t, readErr)
 
 			n.Body = string(data)
 		}
 
-		nodes[rel] = n
+		nodes[path] = n
 
 		return nil
 	})
