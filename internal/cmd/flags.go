@@ -34,7 +34,7 @@ func parseFlags(name string, args []string) (commonFlags, []string, error) {
 	set.BoolVar(&f.force, "force", false, "answer yes to every confirmation")
 	set.BoolVar(&f.force, "f", false, "shorthand for --force")
 
-	// Parse printed the failure, or the usage for -h, on stderr already.
+	// Parse already printed what went wrong, or the usage for -h.
 	if err := set.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			return f, nil, ErrHelp

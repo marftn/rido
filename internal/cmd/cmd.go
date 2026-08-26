@@ -19,11 +19,11 @@ const (
 var (
 	errSkipped = errors.New("skipped")
 
-	// ErrReported marks a failure whose details were already printed, so the
-	// caller exits non-zero without adding another message.
+	// ErrReported is a failure that was already printed. The caller only has to
+	// exit, without printing anything more.
 	ErrReported = errors.New("reported")
 
-	// ErrHelp means the command printed its own usage and nothing went wrong.
+	// ErrHelp means the command printed its own usage. Nothing went wrong.
 	ErrHelp = flag.ErrHelp
 )
 
