@@ -208,15 +208,18 @@ func ModifiedAgo(filename string) string {
 func humanSize(size int64) string {
 	const unit = 1024
 
+	// No need for more than EB (exabytes) because we use int64 anyway.
+	const units = "KMGTPE"
+
 	if size < unit {
 		return fmt.Sprintf("%d B", size)
 	}
 
 	div, exp := int64(unit), 0
-	for n := size / unit; n >= unit; n /= unit {
+	for n := size / unit; n >= unit && exp < len(units)-1; n /= unit {
 		div *= unit
 		exp++
 	}
 
-	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), "KMGT"[exp])
+	return fmt.Sprintf("%.1f %cB", float64(size)/float64(div), units[exp])
 }

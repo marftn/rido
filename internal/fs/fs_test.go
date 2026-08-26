@@ -10,11 +10,15 @@ import (
 
 func TestHumanSize(t *testing.T) {
 	for size, want := range map[int64]string{
-		0:       "0 B",
-		412:     "412 B",
-		1023:    "1023 B",
-		1024:    "1.0 KB",
-		2202009: "2.1 MB",
+		0:         "0 B",
+		412:       "412 B",
+		1023:      "1023 B",
+		1024:      "1.0 KB",
+		2202009:   "2.1 MB",
+		1 << 40:   "1.0 TB",
+		1 << 50:   "1.0 PB",
+		1 << 60:   "1.0 EB",
+		1<<63 - 1: "8.0 EB",
 	} {
 		require.Equal(t, want, humanSize(size))
 	}
