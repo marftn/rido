@@ -12,6 +12,9 @@ import (
 
 const (
 	MinArgsNb = 2
+
+	HelpFlagShort = "-h"
+	HelpFlagLong  = "--help"
 )
 
 func main() {
@@ -26,7 +29,13 @@ func main() {
 		log.Info(version())
 
 		return
-	case "help", "--help", "-h":
+	case "help", HelpFlagLong, HelpFlagShort:
+		usage()
+
+		return
+	}
+
+	if hasHelpFlag(os.Args[2:]) {
 		usage()
 
 		return
@@ -63,6 +72,18 @@ func main() {
 	}
 
 	os.Exit(1)
+}
+
+// hasHelpFlag reports whether the user asked for help after the command name,
+// so that `rido add -h` prints the same thing as `rido help`.
+func hasHelpFlag(args []string) bool {
+	for _, arg := range args {
+		if arg == HelpFlagShort || arg == HelpFlagLong {
+			return true
+		}
+	}
+
+	return false
 }
 
 func version() string {
