@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/marftn/rido/internal/assert"
@@ -14,27 +14,26 @@ import (
 	"github.com/marftn/rido/internal/store"
 )
 
-func AddCmd(cfg config.Config, files []string) {
+func AddCmd(cfg config.Config, files []string) error {
 	if len(files) < 1 {
-		log.Error("At least one file must be added.")
-
-		os.Exit(1)
+		return errors.New("at least one file must be added")
 	}
 
-	nilOrExit(
+	err := cmp.Or(
 		assert.FilesExist(files),
 		assert.NoDuplicate(files),
 		assert.NoNestedPath(files),
 	)
+	if err != nil {
+		return err
+	}
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
-		log.Errorf("Failed to load store: %v.", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
-	runEach(files, "add", "added", func(f string) error {
+	return runEach(files, "add", "added", func(f string) error {
 		return addFile(st, f)
 	})
 }

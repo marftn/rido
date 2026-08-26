@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/marftn/rido/internal/config"
@@ -11,24 +10,23 @@ import (
 	"github.com/marftn/rido/internal/store"
 )
 
-func RevertCmd(cfg config.Config, args []string) {
-	flags, args := parseFlags(NameRevertCmd, args)
+func RevertCmd(cfg config.Config, args []string) error {
+	flags, args, err := parseFlags(NameRevertCmd, args)
+	if err != nil {
+		return err
+	}
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
-		log.Errorf("Failed to load store: %v.", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
 	files, err := targets(st, flags, args)
 	if err != nil {
-		log.Errorf("%v.", err)
-
-		os.Exit(1)
+		return err
 	}
 
-	runEach(files, "revert", "reverted", func(path string) error {
+	return runEach(files, "revert", "reverted", func(path string) error {
 		return revertOne(st, path, flags.force)
 	})
 }

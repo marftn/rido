@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"runtime/debug"
 
@@ -40,18 +41,28 @@ func main() {
 
 	switch os.Args[1] {
 	case cmd.NameAddCmd:
-		cmd.AddCmd(cfg, os.Args[2:])
+		err = cmd.AddCmd(cfg, os.Args[2:])
 	case cmd.NameListCmd:
-		cmd.ListCmd(cfg, os.Args[2:])
+		err = cmd.ListCmd(cfg, os.Args[2:])
 	case cmd.NameRestoreCmd:
-		cmd.RestoreCmd(cfg, os.Args[2:])
+		err = cmd.RestoreCmd(cfg, os.Args[2:])
 	case cmd.NameRevertCmd:
-		cmd.RevertCmd(cfg, os.Args[2:])
+		err = cmd.RevertCmd(cfg, os.Args[2:])
 	default:
 		usage()
 
 		os.Exit(1)
 	}
+
+	if err == nil || errors.Is(err, cmd.ErrHelp) {
+		return
+	}
+
+	if !errors.Is(err, cmd.ErrReported) {
+		log.Errorf("%v.", err)
+	}
+
+	os.Exit(1)
 }
 
 func version() string {

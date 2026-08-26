@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"errors"
+	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/marftn/rido/internal/log"
@@ -16,11 +16,20 @@ const (
 	NameRevertCmd  = "revert"
 )
 
-var errSkipped = errors.New("skipped")
+var (
+	errSkipped = errors.New("skipped")
+
+	// ErrReported marks a failure whose details were already printed, so the
+	// caller exits non-zero without adding another message.
+	ErrReported = errors.New("reported")
+
+	// ErrHelp means the command printed its own usage and nothing went wrong.
+	ErrHelp = flag.ErrHelp
+)
 
 // runEach applies `do` to every path, printing one line per skipped or failed path
-// and a final count. It exits 1 if any path was skipped or failed.
-func runEach(files []string, verb, done string, do func(string) error) {
+// and a final count. It returns ErrReported if any path was skipped or failed.
+func runEach(files []string, verb, done string, do func(string) error) error {
 	succeeded, skipped, failed := 0, 0, 0
 
 	for _, f := range files {
@@ -53,6 +62,8 @@ func runEach(files []string, verb, done string, do func(string) error) {
 	log.Info(strings.Join(counts, ", "))
 
 	if skipped+failed > 0 {
-		os.Exit(1)
+		return ErrReported
 	}
+
+	return nil
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/marftn/rido/internal/config"
 	"github.com/marftn/rido/internal/fs"
@@ -10,24 +9,23 @@ import (
 	"github.com/marftn/rido/internal/store"
 )
 
-func RestoreCmd(cfg config.Config, args []string) {
-	flags, args := parseFlags(NameRestoreCmd, args)
+func RestoreCmd(cfg config.Config, args []string) error {
+	flags, args, err := parseFlags(NameRestoreCmd, args)
+	if err != nil {
+		return err
+	}
 
 	st, err := store.LoadStore(cfg)
 	if err != nil {
-		log.Errorf("Failed to load store: %v.", err)
-
-		os.Exit(1)
+		return fmt.Errorf("failed to load store: %w", err)
 	}
 
 	files, err := targets(st, flags, args)
 	if err != nil {
-		log.Errorf("%v.", err)
-
-		os.Exit(1)
+		return err
 	}
 
-	runEach(files, "restore", "restored", func(path string) error {
+	return runEach(files, "restore", "restored", func(path string) error {
 		return restoreOne(st, path, flags.force)
 	})
 }
