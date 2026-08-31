@@ -18,7 +18,13 @@ jobs:
           go-version-file: go.mod
       - run: go build ./...
       - run: go vet ./...
-      - run: go test -race ./...
+      # -coverpkg=./... or the number lies: internal/assert has no tests of its
+      # own and would read 0% while internal/cmd exercises all of it.
+      - run: go test -race -coverpkg=./... -coverprofile=cover.out ./...
+      - uses: codecov/codecov-action@v5
+        with:
+          files: cover.out
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   test-macos:
     runs-on: macos-latest

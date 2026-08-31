@@ -1,5 +1,7 @@
 # rido
 
+[![codecov](https://codecov.io/gh/marftn/rido/branch/main/graph/badge.svg)](https://codecov.io/gh/marftn/rido)
+
 _(pronounced "ree-doh")_
 
 Keep sensitive files out of coding sandboxes without changing your workflow.
