@@ -24,16 +24,11 @@ debug *args:
 
 # Build the project.
 build *args:
-    #!/usr/bin/env bash
-    export GOBIN="{{build_dir}}/bin"
-
-    echo "Go generate ..."
-    go generate ./...
-
     echo "Go build ..."
-    go install -tags debug "$@" ./...
+    go build -tags debug "$@" ./...
 
 install:
+    echo "Go install ..."
     go install ./
 
 # Enter the default Nix development shell and execute the command `"$@`.
