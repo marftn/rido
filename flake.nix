@@ -16,12 +16,19 @@
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+
+        # Bump this on each release, Nix has no view of the git tag.
+        version = "0.1.1";
       in
       {
         packages.default = pkgs.buildGoModule {
           pname = "rido";
-          version = self.shortRev or "dev";
+          inherit version;
           src = ./.;
+
+          # The flake source carries no .git, so debug.ReadBuildInfo() would
+          # report "(devel)". Stamp the version explicitly instead.
+          ldflags = [ "-X main.buildVersion=v${version}+${self.shortRev or "dirty"}" ];
 
           vendorHash = "sha256-4g8b8uHGe9TZnM3SlmBFnCI5GFQaowJuVOnvHK+vcZQ=";
 
