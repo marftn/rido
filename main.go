@@ -86,7 +86,17 @@ func hasHelpFlag(args []string) bool {
 	return false
 }
 
+// buildVersion is set via -ldflags for some source (e.g Nix package).
+// It is empty for plain `go build`/`go install`.
+//
+//nolint:gochecknoglobals // Only here to display version.
+var buildVersion string
+
 func version() string {
+	if buildVersion != "" {
+		return buildVersion
+	}
+
 	info, ok := debug.ReadBuildInfo()
 	if !ok || info.Main.Version == "" {
 		return "unknown"

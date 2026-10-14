@@ -68,6 +68,13 @@ Linux and macOS. Windows is not supported: creating symlinks there needs elevate
 go install github.com/marftn/rido@latest
 ```
 
+With Nix (flakes enabled):
+
+```sh
+nix run github:marftn/rido -- list       # try it without installing
+nix profile install github:marftn/rido   # install it
+```
+
 ## Usage
 
 ### Add existing files:
